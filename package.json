@@ -5,6 +5,7 @@
   "description": "Memory Parlour — single-page fold site (Home fold build).",
   "scripts": {
     "dev": "node server/dev-server.js",
-    "start": "node server/dev-server.js"
+    "start": "node server/dev-server.js",
+    "test:r2": "node server/r2.test.js"
   }
 }

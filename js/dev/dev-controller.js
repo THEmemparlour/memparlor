@@ -53,6 +53,10 @@
       const layout = NS.buildLayout?.(cfg);
       if (layout) destroyers.push(layout);
     }
+    if (cfg.media) {
+      const media = NS.buildMedia?.(cfg);
+      if (media) destroyers.push(media);
+    }
   };
 
   const activeFold = () => document.documentElement.dataset.fold;

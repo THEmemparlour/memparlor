@@ -61,6 +61,7 @@
       mode: 'object', // focal crop — always fills the (bleeding) box, no gaps
       minZoom: 1, // never below cover
     },
+    media: { selector: '[data-process-media] .process__media-el', kind: 'video' },
     editor: {
       rootSelector: '[data-process-root]',
       selectSelectors: '.process__eyebrow, .process__title, .process__lede-line, .process__step-title, .process__step-desc',

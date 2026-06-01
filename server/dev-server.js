@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const r2 = require('./r2'); // hand-rolled SigV4 R2 upload (built-ins only)
 
 const ROOT = path.resolve(__dirname, '..');
 const PORT = process.env.PORT || 8080;
@@ -107,6 +108,22 @@ function readJsonBody(req, res, cb) {
     }
     cb(parsed);
   });
+}
+
+// Read a raw binary body (for media uploads) up to R2_MAX_UPLOAD_MB (default 50);
+// over the cap we destroy the socket. The JSON readers cap at 100 KB, which is far
+// too small for an image/video — hence this separate reader.
+function readRawBody(req, res, cb) {
+  const cap = (Number(process.env.R2_MAX_UPLOAD_MB) || 50) * 1024 * 1024;
+  const chunks = [];
+  let size = 0;
+  let over = false;
+  req.on('data', (chunk) => {
+    size += chunk.length;
+    if (size > cap) { over = true; req.destroy(); return; }
+    chunks.push(chunk);
+  });
+  req.on('end', () => { if (!over) cb(Buffer.concat(chunks)); });
 }
 
 const FOLD_RE = /^[a-z][a-z0-9-]*$/; // content/<fold>.json — can't escape the dir
@@ -424,6 +441,72 @@ function saveLayout(req, res) {
   });
 }
 
+// --- Dev-only: upload media to Cloudflare R2 (POST /__dev/upload) ------------
+// Streams the raw request body to R2 via the SigV4 helper and returns the public
+// custom-domain URL. The fold + filename come from headers (the body is the file).
+// Disabled (503) when the R2_* env isn't configured — like the dev key, this is a
+// local-authoring-only capability with no presence on the deployed site.
+const UPLOAD_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif',
+  'video/mp4', 'video/webm',
+]);
+
+function handleUpload(req, res) {
+  const contentType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+  if (!UPLOAD_TYPES.has(contentType)) return send(res, 400, 'unsupported content-type');
+  const fold = req.headers['x-media-fold'];
+  if (!isStr(fold) || !FOLD_RE.test(fold)) return send(res, 400, 'invalid fold');
+  // Sanitize the filename to a safe slug; the key path is fully server-controlled.
+  const name =
+    String(req.headers['x-file-name'] || 'file')
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, '-')
+      .replace(/^[-.]+|-+$/g, '') || 'file';
+  if (!r2.r2Configured()) {
+    return send(res, 503, JSON.stringify({ error: 'r2 not configured' }), 'application/json; charset=utf-8');
+  }
+  readRawBody(req, res, async (body) => {
+    if (!body.length) return send(res, 400, 'empty body');
+    const key = `media/${fold}/${Date.now()}-${name}`;
+    try {
+      const { url } = await r2.putObject({ key, body, contentType });
+      send(res, 200, JSON.stringify({ url }), 'application/json; charset=utf-8');
+    } catch (err) {
+      send(res, 502, JSON.stringify({ error: String(err.message || err) }), 'application/json; charset=utf-8');
+    }
+  });
+}
+
+// --- Dev-only: persist media source fields (POST /__dev/media) ----------------
+// Read-modify-write of content/<fold>.json's media.{src,alt?,poster?} only — every
+// other media key (type/position/zoom/fit + the video flags) is preserved, exactly
+// like saveCrop. `src` is the uploaded R2 URL or a pasted https/asset path. Type-
+// switching (image↔video) is out of scope and authored by hand.
+const validMediaUrl = (v) => isStr(v) && v.length <= 2000 && (v.startsWith('https://') || v.startsWith('/assets/'));
+
+function saveMedia(req, res) {
+  readJsonBody(req, res, (payload) => {
+    try {
+      const { fold, src, alt, poster } = payload;
+      if (!isStr(fold) || !FOLD_RE.test(fold)) return send(res, 400, 'invalid fold');
+      if (!FOLDS[fold]) return send(res, 400, 'unknown fold'); // restrict to known content files, like the other write endpoints
+      if (!validMediaUrl(src)) return send(res, 400, 'invalid src');
+      if (alt != null && (!isStr(alt) || alt.length > 2000)) return send(res, 400, 'invalid alt');
+      if (poster != null && !validMediaUrl(poster)) return send(res, 400, 'invalid poster');
+      const file = path.join(ROOT, 'content', `${fold}.json`);
+      const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+      json.media = json.media || {};
+      json.media.src = src;
+      if (alt != null) json.media.alt = alt;
+      if (poster != null) json.media.poster = poster;
+      fs.writeFileSync(file, `${JSON.stringify(json, null, 2)}\n`);
+      send(res, 200, JSON.stringify({ ok: true }), 'application/json; charset=utf-8');
+    } catch (err) {
+      send(res, 400, `save failed: ${err.message}`);
+    }
+  });
+}
+
 // Validate a passphrase for the client gate. The client never learns the real key —
 // it sends what the user typed and we just say yes/no. When no key is configured
 // dev is disabled: reply 403 {configured:false} so the client stays locked WITHOUT
@@ -454,6 +537,8 @@ const server = http.createServer((req, res) => {
     if (urlPath === '/__dev/content') return saveContent(req, res);
     if (urlPath === '/__dev/css') return saveCss(req, res);
     if (urlPath === '/__dev/layout') return saveLayout(req, res);
+    if (urlPath === '/__dev/upload') return handleUpload(req, res);
+    if (urlPath === '/__dev/media') return saveMedia(req, res);
   }
 
   const resolved = path.normalize(path.join(ROOT, urlPath));
@@ -484,6 +569,9 @@ server.on('listening', () => {
   console.log(`Memory Parlour dev server → http://localhost:${server.address().port}`);
   if (!DEV_KEY) {
     console.warn('[dev] MP_DEV_KEY not set — the ?dev tools are DISABLED. Set MP_DEV_KEY to enable them.');
+  }
+  if (!r2.r2Configured()) {
+    console.warn('[dev] R2_* env not fully set — media upload (POST /__dev/upload) is DISABLED. Set R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_PUBLIC_BASE_URL to enable it.');
   }
 });
 

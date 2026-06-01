@@ -172,6 +172,9 @@
     // Must start muted regardless of the final audio decision — browsers block
     // autoplay for videos with sound.
     video.muted = true;
+    // Native player chrome (play/pause + the unmute the autoplay-muted clip needs).
+    // Supersedes the optional showMuteControl toggle below, which stays opt-in/off.
+    video.controls = true;
     video.preload = 'none'; // nothing fetched until activation
     // Same opt-in focal crop as images (the poster + frames are an object-fit:cover
     // box), so a fold like About can reframe its clip via the shared ?dev picker.

@@ -37,6 +37,7 @@
       mode: 'object', // focal crop — always fills the window, no gaps
       minZoom: 1, // never below cover
     },
+    media: { selector: '[data-faqs-media] .faqs__media-el', kind: 'image' },
     editor: {
       rootSelector: '[data-faqs-root]',
       selectSelectors: '.faqs__eyebrow, .faqs__title, .faqs__question, .faqs__answer-line',
