@@ -76,6 +76,24 @@ class SiteNav extends HTMLElement {
 
     // Initial highlight from the controller's mirrored state (if already set).
     this._setActive(document.documentElement.dataset.fold);
+
+    // Dev tooling for the nav (only under ?dev): the shared drag + editor cores
+    // plus the fold-independent site config (registers devConfigs.site + a "NAV"
+    // toggle). Deduped against the fold renderers' loads via _devLoaded; the cores
+    // are guarded singletons, so a double-load is a no-op. Injected after render so
+    // <site-nav>'s DOM exists for the editor to target.
+    if (new URLSearchParams(location.search).has('dev')) {
+      const NS = (window.MemoryParlour = window.MemoryParlour || {});
+      const loaded = (NS._devLoaded = NS._devLoaded || new Set());
+      for (const src of ['/js/dev/dev-drag.js', '/js/dev/dev-editor.js', '/js/dev/dev-config.site.js']) {
+        if (loaded.has(src)) continue;
+        loaded.add(src);
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        document.body.appendChild(s);
+      }
+    }
   }
 
   _setActive(fold) {

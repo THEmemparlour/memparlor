@@ -1,8 +1,8 @@
 /* ==========================================================================
    Contact fold — per-fold styles only (base.css owns tokens/header/fold
    framework). Three regions: lede + body (left) | Calendly embed (right) |
-   eyebrow+title heading (bottom-right). Default dark-on-cream header (no
-   knockout). See specdoc/contact-fold.md.
+   eyebrow+title heading (bottom-right). Default dark-on-cream header (shared
+   default logo). See specdoc/contact-fold.md.
    ========================================================================== */
 
 .contact {
@@ -126,7 +126,10 @@
     height: 60vh;
   }
 
+  /* The fold scrolls vertically on mobile, so keep the heading in flow (an absolute
+     pin would fight the scroll) — it's already last, after the embed; right-aligned
+     keeps it in the bottom-right like the other folds. */
   .contact__heading {
-    text-align: left;
+    text-align: right;
   }
 }

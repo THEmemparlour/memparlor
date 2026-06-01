@@ -13,5 +13,26 @@
     "muted": true,
     "showMuteControl": false
   },
-  "body": "services.md"
+  "services": [
+    {
+      "label": "Stories:",
+      "description": "Childhood memories, family folklore, and stories passed quietly across generations preserved as thoughtfully created books and personal archives."
+    },
+    {
+      "label": "Photographs:",
+      "description": "Personal image archives restored, organised, and curated into albums and books that allow the photographs to speak for themselves."
+    },
+    {
+      "label": "Films & Home Videos:",
+      "description": "Old tapes and family recordings carefully preserved as intimate film diaries that capture movement, voice, and everyday life."
+    },
+    {
+      "label": "Voice & Letters:",
+      "description": "Letters, conversations, and recordings gathered into personal written or audio archives — allowing voices and words to remain close across time."
+    },
+    {
+      "label": "Jewellery & Personal Objects:",
+      "description": "Keepsakes, heirlooms, and everyday objects documented alongside the stories they carry, with thoughtful restoration and recreation where needed."
+    }
+  ]
 }

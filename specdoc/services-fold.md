@@ -76,40 +76,39 @@ same shape introduced on About.
     "muted": true,
     "showMuteControl": false
   },
-  "body": "services.md"
+  "services": [
+    {
+      "label": "Stories:",
+      "description": "Childhood memories, family folklore, and stories passed quietly across generations preserved as thoughtfully created books and personal archives."
+    },
+    {
+      "label": "Photographs:",
+      "description": "Personal image archives restored, organised, and curated into albums and books that allow the photographs to speak for themselves."
+    },
+    {
+      "label": "Films & Home Videos:",
+      "description": "Old tapes and family recordings carefully preserved as intimate film diaries that capture movement, voice, and everyday life."
+    },
+    {
+      "label": "Voice & Letters:",
+      "description": "Letters, conversations, and recordings gathered into personal written or audio archives — allowing voices and words to remain close across time."
+    },
+    {
+      "label": "Jewellery & Personal Objects:",
+      "description": "Keepsakes, heirlooms, and everyday objects documented alongside the stories they carry, with thoughtful restoration and recreation where needed."
+    }
+  ]
 }
 ```
 
-- `body` points at the markdown file rendered into the left column.
+- `services` is the list copy: each entry is a `{ label, description }`, rendered
+  to a flat `<h2>` + `<p>` pair (label keeps its trailing colon), styled in CSS.
+  All content is JSON — there is no external markdown file or parser.
 - `type` flips to `"video"` (with a `src`/`poster`) when a video is supplied.
 
-**`content/services.md`** — the services list (placeholder text = what's in the
-mockup). Each service is a heading (label, with its colon) followed by a
-paragraph (description). marked.js renders these to `<h2>` + `<p>`, styled in CSS.
-
-```markdown
-## Stories:
-Childhood memories, family folklore, and stories passed quietly across generations preserved as thoughtfully created books and personal archives.
-
-## Photographs:
-Personal image archives restored, organised, and curated into albums and books that allow the photographs to speak for themselves.
-
-## Films & Home Videos:
-Old tapes and family recordings carefully preserved as intimate film diaries that capture movement, voice, and everyday life.
-
-## Voice & Letters:
-Letters, conversations, and recordings gathered into personal written or audio archives — allowing voices and words to remain close across time.
-
-## Jewellery & Personal Objects:
-Keepsakes, heirlooms, and everyday objects documented alongside the stories they carry, with thoughtful restoration and recreation where needed.
-
-## A Life Story:
-<!-- description cut off in the mockup — placeholder body to be supplied -->
-```
-
-> **Flag:** "A Life Story:" is cut off at the bottom of the mockup with no
-> visible description, so its body is a placeholder for now. If there are
-> further items below it, send them and I'll append.
+> **Flag:** "A Life Story:" appears in the mockup but its description is cut off,
+> so it is omitted from the content until real copy is supplied. Send the copy and
+> I'll append it as another `services` entry.
 
 ---
 

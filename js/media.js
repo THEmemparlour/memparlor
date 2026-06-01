@@ -15,6 +15,37 @@
   'use strict';
   const NS = (window.MemoryParlour = window.MemoryParlour || {});
 
+  // Crop transform shared by the on-load apply (below) and the ?dev picker, so
+  // they can never drift. The image base is object-fit:cover; `position` pans the
+  // whole image (translate) and `zoom` scales it about the centre. 50/50/1 is the
+  // identity (clean cover); zoom < 1 shrinks it so the base shows around.
+  NS.cropTransform = (px, py, z) => `translate(${px - 50}%, ${py - 50}%) scale(${z})`;
+  const parsePos = (s) => {
+    const m = (s || '').match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/);
+    return m ? [parseFloat(m[1]), parseFloat(m[2])] : [50, 50];
+  };
+
+  // Apply the opt-in crop control (fit/position/zoom) to a media element, in the
+  // same two modes createMedia documents. Shared by the <img> and <video> paths
+  // (both are object-fit:cover boxes), so the focal crop works identically whether
+  // a fold shows a still or a clip — the ?dev picker just targets `.*__media-el`.
+  const applyCrop = (elem, media, cropMode) => {
+    if (media.fit) elem.style.objectFit = media.fit;
+    const hasPos = typeof media.position === 'string';
+    const hasZoom = typeof media.zoom === 'number';
+    if (!hasPos && !hasZoom) return;
+    const [px, py] = parsePos(media.position || '50% 50%');
+    const z = hasZoom ? media.zoom : 1;
+    if (cropMode === 'transform') {
+      elem.style.transformOrigin = '50% 50%';
+      elem.style.transform = NS.cropTransform(px, py, z);
+    } else {
+      elem.style.objectPosition = `${px}% ${py}%`;
+      elem.style.transformOrigin = `${px}% ${py}%`;
+      elem.style.transform = `scale(${z})`;
+    }
+  };
+
   /**
    * Render a heading block (eyebrow + title) into `el`.
    * The eyebrow is a non-heading element; the title is a real heading (default
@@ -44,11 +75,12 @@
    * Build the media element for a fold and, for activation-driven types, return
    * { activate, deactivate } controls (else null). Mirrors the typed `media` model:
    *   - image → renders with the given `imgLoading` (default 'lazy'), plus the
-   *     opt-in `fit`/`position`/`zoom` crop control (`zoom` is a scale
-   *     multiplier whose origin tracks `position`); returns null.
+   *     opt-in `fit`/`position`/`zoom` crop control (`position` pans the image,
+   *     `zoom` scales it — one transform via NS.cropTransform); returns null.
    *   - video → poster shows immediately; `src` is lazy-attached on the first
    *     activation; the element always starts muted so autoplay isn't blocked;
    *     an optional mute/unmute control is rendered when `showMuteControl`.
+   *     Honors the same opt-in `fit`/`position`/`zoom` focal crop as images.
    *   - calendly → inline scheduling embed; the Calendly script is injected and
    *     the widget initialised on first `activate` (guarded), so the third-party
    *     script stays off the initial load. Empty `url` → a neutral placeholder
@@ -58,10 +90,12 @@
    *
    * @param {Element} el  container (cleared before rendering)
    * @param {object|null|undefined} media  typed media object
-   * @param {{prefix:string, imgLoading?:string}} opts  `imgLoading` default 'lazy'
+   * @param {{prefix:string, imgLoading?:string, cropMode?:'object'|'transform'}} opts
+   *   `imgLoading` default 'lazy'; `cropMode` how `position`/`zoom` apply (default
+   *   'object' = always-filled focal crop; 'transform' = movable backdrop layer).
    * @returns {{activate:Function, deactivate:Function}|null}
    */
-  NS.createMedia = (el, media, { prefix, imgLoading } = {}) => {
+  NS.createMedia = (el, media, { prefix, imgLoading, cropMode = 'object' } = {}) => {
     el.textContent = '';
     if (!media) return null;
 
@@ -71,18 +105,11 @@
       img.src = media.src;
       img.alt = media.alt || '';
       img.loading = imgLoading || 'lazy';
-      // Crop control (opt-in): only set the inline styles when the content
-      // supplies them, so folds that rely on their own CSS aren't overridden.
-      if (media.fit) img.style.objectFit = media.fit;
-      if (media.position) img.style.objectPosition = media.position;
-      // Zoom (opt-in): a scale multiplier (1 = no zoom; >1 magnifies into the
-      // focal point, <1 shrinks the image within the frame). Origin tracks
-      // `position` so it zooms toward the crop you framed. The fold's media
-      // container must clip overflow for >1 to read as a tighter crop.
-      if (typeof media.zoom === 'number' && media.zoom !== 1) {
-        img.style.transform = `scale(${media.zoom})`;
-        img.style.transformOrigin = media.position || 'center';
-      }
+      // Crop control (opt-in): only touch styles when the content supplies them.
+      // 'object' = focal crop that always fills the box (object-position pans the
+      // focal point; zoom tightens toward it). 'transform' = a movable layer
+      // (translate pans, zoom scales about centre; may reveal the base behind it).
+      applyCrop(img, media, cropMode);
       el.appendChild(img);
       return null;
     }
@@ -146,6 +173,9 @@
     // autoplay for videos with sound.
     video.muted = true;
     video.preload = 'none'; // nothing fetched until activation
+    // Same opt-in focal crop as images (the poster + frames are an object-fit:cover
+    // box), so a fold like About can reframe its clip via the shared ?dev picker.
+    applyCrop(video, media, cropMode);
     el.appendChild(video);
 
     // Optional mute/unmute control (small corner overlay). Present only when the

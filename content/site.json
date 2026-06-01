@@ -6,11 +6,35 @@
     "href": "/"
   },
   "nav": [
-    { "label": "HOME",       "path": "/",            "fold": "home" },
-    { "label": "ABOUT US",   "path": "/about-us",    "fold": "about" },
-    { "label": "SERVICES",   "path": "/services",    "fold": "services" },
-    { "label": "PROCESS",    "path": "/process",     "fold": "process" },
-    { "label": "FAQS",       "path": "/faqs",        "fold": "faqs" },
-    { "label": "CONTACT US", "path": "/contact-us",  "fold": "contact" }
+    {
+      "label": "HOME",
+      "path": "/",
+      "fold": "home"
+    },
+    {
+      "label": "ABOUT US",
+      "path": "/about-us",
+      "fold": "about"
+    },
+    {
+      "label": "SERVICES",
+      "path": "/services",
+      "fold": "services"
+    },
+    {
+      "label": "tdrfcv",
+      "path": "/process",
+      "fold": "process"
+    },
+    {
+      "label": "FAQS",
+      "path": "/faqs",
+      "fold": "faqs"
+    },
+    {
+      "label": "CONTACT US",
+      "path": "/contact-us",
+      "fold": "contact"
+    }
   ]
 }

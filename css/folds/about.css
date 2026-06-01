@@ -6,6 +6,7 @@
    ========================================================================== */
 
 .about {
+  position: relative; /* positioning context for the mobile bottom-right heading */
   width: 100%;
   height: 100%;
   display: flex;
@@ -63,9 +64,13 @@
 .about__mute.is-muted::before { content: "\1F507"; /* 🔇 */ }
 
 /* --- Bottom band: poem (left) | heading (right) ----------------------------
-   Pushed to the bottom of the fold; cream gap above it fills the remaining space. */
+   Fills the space below the video and bottom-aligns its content, so the cream gap
+   sits above it. flex:1 + min-height:0 bound it to that space (rather than sizing
+   to the poem), so a long poem scrolls *inside* the poem column instead of growing
+   the band past the fold and shoving the video/heading around. */
 .about__bottom {
-  margin-top: auto;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -73,9 +78,23 @@
   padding-top: clamp(20px, 4vh, 44px);
 }
 
-/* Poem — italic serif, left-aligned, exact line breaks preserved. */
+/* Poem — italic serif, left-aligned, exact line breaks preserved. Scrolls itself
+   once it's taller than the band (the heading stays pinned bottom-right). */
 .about__poem {
   max-width: 52ch;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: clamp(8px, 1.5vw, 24px);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-hairline) transparent;
+}
+
+.about__poem::-webkit-scrollbar { width: 6px; }
+.about__poem::-webkit-scrollbar-thumb {
+  background: var(--color-ink-hairline);
+  border-radius: 3px;
 }
 
 .about__poem-line {
@@ -131,7 +150,25 @@
     flex-direction: column;
     align-items: flex-start;
     gap: clamp(18px, 3.5vh, 32px);
+    /* Reserve room so the poem clears the bottom-right heading pinned below. */
+    padding-bottom: clamp(4rem, 12vh, 6rem);
   }
 
-  .about__heading { text-align: left; }
+  /* Stacked layout: let the poem flow naturally instead of capping it to the band
+     (which, in a column, would squeeze the heading below it). */
+  .about__poem {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+
+  /* Heading pinned to the fold's bottom-right corner (matches the desktop intent). */
+  .about__heading {
+    position: absolute;
+    right: clamp(16px, 5vw, 28px);
+    bottom: clamp(16px, 4vh, 28px);
+    margin: 0;
+    text-align: right;
+    z-index: 3;
+  }
 }
