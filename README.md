@@ -67,6 +67,7 @@ css/
     services.css           Services-only: two-column scroll layout + media slot.
     process.css            Process-only: lede/steps + bottom-bleeding video band.
     faqs.css               FAQs-only: 3-region layout + knockout-logo header treatment.
+    faqs.overrides.css     Saved by the ?dev FAQ editor; loaded after faqs.css (always).
     contact.css            Contact-only: text | embed | heading 3-region layout.
 js/
   nav.js                   <site-nav> Web Component (logo + nav, active state).
@@ -80,7 +81,8 @@ js/
   process.js               Process renderer (lede + numbered steps + video band).
   faqs.js                  FAQs renderer (left image + Q&A + heading; feeds the
                            knockout logo; lazy-loads the dev picker under ?dev).
-  faqs-dev-picker.js       Dev-only focal-point picker (loaded only under ?dev).
+  faqs-dev-picker.js       Dev-only image focal-point + zoom picker (?dev only).
+  faqs-dev-editor.js       Dev-only FAQ text/structure/CSS editor (?dev only).
   contact.js               Contact renderer (lede + body + lazy Calendly embed).
 content/
   site.json                Shared logo + nav (single source of truth for routes).
@@ -96,8 +98,8 @@ assets/
                            process/faqs).
   icons/                   (empty — no icons/favicon committed yet)
 server/
-  dev-server.js            Zero-dependency static server with SPA fallback, plus a
-                           dev-only POST /__dev/crop endpoint (the ?dev picker's Save).
+  dev-server.js            Zero-dependency static server with SPA fallback, plus dev-only
+                           POST /__dev/{crop,content,css} endpoints (the ?dev tools' Save).
 specdoc/                    Per-fold specifications: home, about, services, process,
                            faqs, contact.
 The Memory Parlour mockup images/   Source design mockups (PNG) the folds are built from.
@@ -288,6 +290,13 @@ that writes back to `faqs.json` via the dev server's `POST /__dev/crop`). While
 the arrows pan instead of changing folds — nav-bar clicks still work. Rolling the
 crop control out to every fold (and migrating `home.js` onto the shared renderer)
 is a later task.
+
+`?dev` also loads an **in-page FAQ editor** (`js/faqs-dev-editor.js`): click text
+to select, double-click to edit; add/remove/reorder Q&A; edit a curated set of text
+CSS on the shared class rule with live preview. **Save text** writes `heading`+`faqs`
+to `faqs.json` (`POST /__dev/content`, preserving `media`); **Save CSS** writes the
+curated overrides to `css/folds/faqs.overrides.css` (`POST /__dev/css`), which is
+linked after `faqs.css` and loaded always so the edits are real. FAQ-only for now.
 
 **`content/contact.json`** — a single-line `lede` + a `body` paragraph array + a
 `calendly` media embed + heading:

@@ -14,10 +14,9 @@
   },
   "faqs": [
     {
-      "question": "Is the process personalised?",
+      "question": "New question?",
       "answer": [
-        "Every archive is approached differently.",
-        "We spend time understanding your story, materials, and comfort levels before shaping the process around you. No two projects are handled the same way."
+        "New answer."
       ]
     },
     {
@@ -32,6 +31,12 @@
       "answer": [
         "Each archive is unique, and timelines vary depending on the materials and scope of the project.",
         "All deliverables, timelines, and expectations are discussed clearly beforehand."
+      ]
+    },
+    {
+      "question": "New question?",
+      "answer": [
+        "New answer."
       ]
     }
   ]

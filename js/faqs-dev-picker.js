@@ -205,6 +205,11 @@
   };
   window.addEventListener('keydown', (e) => {
     if (document.documentElement.dataset.fold !== 'faqs') return;
+    // Leave arrows to the text caret / form fields when the editor is editing.
+    const ae = document.activeElement;
+    if (ae && (ae.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName))) {
+      return;
+    }
     const move = ARROWS[e.key];
     if (!move) return;
     e.preventDefault();

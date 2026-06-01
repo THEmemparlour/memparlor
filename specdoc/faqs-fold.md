@@ -44,6 +44,11 @@ context but scoped to what we're building now.
    picker owns the arrow keys. Nav-bar/logo clicks and back/forward still work, so
    you can move folds deliberately. Read once at load (a "dev session" flag).
    See §5.
+8. **In-page FAQ editor (text + structure + CSS).** A second `?dev` tool
+   (`js/faqs-dev-editor.js`) lets you edit FAQ text, add/remove/reorder Q&A, and
+   tweak a curated set of text CSS on the shared class rule. Text/structure saves
+   to `content/faqs.json`; CSS saves to an always-loaded `css/folds/faqs.overrides.css`.
+   FAQ-only; plaintext only; class-rule CSS only (no per-instance). See §12.
 
 ---
 
@@ -256,8 +261,10 @@ so there's no JS theme-switching hook — the knockout rules live here and read 
 | `js/faqs.js`  | FAQ renderer: reads `faqs.json`; renders Q&A (answers as paragraph arrays), heading, and the left image with `fit`/`position`. Also publishes the image URL as the `--knockout-image` custom property for the logo fill. |
 | `js/folds.js` | **No theme-switching code needed** — the existing `data-fold` mirror drives the CSS treatment. (Unchanged for FAQs.) |
 | `js/nav.js`   | **No theme attribute / image logic** — the knockout is pure CSS keyed on `html[data-fold="faqs"]`, reading `--knockout-image`. (Unchanged for FAQs.) |
-| `js/media.js` | Extend `createMedia`'s image branch to apply `fit`/`position` (`object-fit`/`object-position`) **only when present**. |
-| dev picker    | `js/faqs-dev-picker.js`: focal-point picker, loaded/activated only under `?dev`.         |
+| `js/media.js` | Extend `createMedia`'s image branch to apply `fit`/`position`/`zoom` **only when present**. |
+| dev picker    | `js/faqs-dev-picker.js`: focal-point + zoom picker, loaded/activated only under `?dev`.  |
+| dev editor    | `js/faqs-dev-editor.js`: text/structure/CSS editor, loaded only under `?dev` (see §12).  |
+| `server/dev-server.js` | Dev-only `POST /__dev/crop` (image), `POST /__dev/content` (text+structure → `faqs.json`), `POST /__dev/css` (curated CSS → `faqs.overrides.css`). |
 
 ---
 
@@ -286,3 +293,49 @@ so there's no JS theme-switching hook — the knockout rules live here and read 
 - Fits one viewport (three FAQs, no internal scroll).
 - Knockout logo is fed the **same** left-column image (not a separate asset).
 - Header reverts to the default dark-on-cream treatment on every other fold.
+
+---
+
+## 12. Dev FAQ editor (`js/faqs-dev-editor.js`, `?dev` only)
+
+A second dev tool beside the crop picker (top-right panel; the picker stays
+bottom-right). Edits the **live DOM in place** — no re-render. Everything it
+injects is tagged `data-faqs-dev` and never persisted; only the overrides CSS
+ships.
+
+**Text editing.** Single-click a text element (eyebrow, title, question, answer
+line) to **select** it (fills the CSS inspector); double-click to **edit** it
+(`contenteditable` plaintext; Enter commits, Escape reverts). All four kinds are
+single-line.
+
+**Structure.** Context buttons in the panel add / remove / reorder FAQ items and
+answer paragraphs (kept ≥1 each). New nodes use the exact `js/faqs.js` markup so
+classes/CSS apply immediately; delegated listeners make them editable at once.
+
+**CSS inspector.** For the selected element's **shared class** (`.faqs__question`
+etc.) it shows a curated set: `font-size, font-weight, font-style, color,
+line-height, letter-spacing, text-align, margin`. Fields seed from the **declared**
+rule value (scanning `document.styleSheets`, skipping the live `<style>` and
+cross-origin sheets) so `clamp()`/`var()` are preserved — not `getComputedStyle`.
+Only **changed** props are tracked; a live `<style id="faqs-dev-overrides">`
+previews them (byte-identical to what's saved).
+
+**Save (two buttons).**
+- **Save text** → `POST /__dev/content` `{fold, heading, faqs}` (scraped from the
+  DOM). Server read-modify-writes `content/faqs.json`, touching only `heading` +
+  `faqs` — **never `media`**, so it can't clobber the crop picker's writes.
+- **Save CSS** → `POST /__dev/css` `{fold, overrides:{selector:{prop:value}}}`.
+  Server triple-whitelists (selector ∈ the four faqs classes; prop ∈ curated set;
+  value charset, no `url(`/`;{}:`), then **re-serializes the whole**
+  `css/folds/faqs.overrides.css` from the validated map (no CSS parsing).
+
+`css/folds/faqs.overrides.css` is linked **after** `faqs.css` and loaded **always**
+(not gated on `?dev`), so saved CSS is real on the live site; it ships pre-seeded
+with just the AUTO-GENERATED header so the link never 404s. The crop picker's
+arrow-pan is suppressed while a `contenteditable`/form field is focused, so arrows
+move the caret while editing.
+
+Out of scope (same as the rest of the crop tooling): FAQ-only; plaintext (no
+markup); class-rule CSS only (no per-instance); curated property set only. The two
+`/__dev/*` write endpoints exist only on the dev server — saves fail harmlessly on
+the deployed static host.

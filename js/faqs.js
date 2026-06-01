@@ -40,12 +40,16 @@
     document.documentElement.classList.add('is-knockout-ready');
   }
 
-  // Dev focal-point picker — fetched/activated only when ?dev is present.
+  // Dev tooling — fetched/activated only when ?dev is present: the image crop
+  // picker and the text/structure/CSS editor. Both run after this render, so the
+  // FAQ DOM they bind to already exists.
   if (new URLSearchParams(location.search).has('dev')) {
-    const s = document.createElement('script');
-    s.src = '/js/faqs-dev-picker.js';
-    s.defer = true;
-    document.body.appendChild(s);
+    for (const src of ['/js/faqs-dev-picker.js', '/js/faqs-dev-editor.js']) {
+      const s = document.createElement('script');
+      s.src = src;
+      s.defer = true;
+      document.body.appendChild(s);
+    }
   }
 
   // Each Q&A pair: a question heading + answer paragraphs (array preserves the
