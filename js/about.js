@@ -51,7 +51,7 @@
   // the generic picker + editor cores. async=false preserves order.
   if (new URLSearchParams(location.search).has('dev')) {
     const loaded = (window.MemoryParlour._devLoaded = window.MemoryParlour._devLoaded || new Set());
-    for (const src of ['/js/dev/dev-auth.js', '/js/dev/dev-drag.js', '/js/dev/dev-picker.js', '/js/dev/dev-editor.js', '/js/dev/dev-controller.js', '/js/dev/dev-config.about.js']) {
+    for (const src of ['/js/dev/dev-auth.js', '/js/dev/dev-drag.js', '/js/dev/dev-picker.js', '/js/dev/dev-editor.js', '/js/dev/dev-layout.js', '/js/dev/dev-controller.js', '/js/dev/dev-config.about.js']) {
       if (loaded.has(src)) continue; // shared cores are fetched once across all folds
       loaded.add(src);
       const s = document.createElement('script');

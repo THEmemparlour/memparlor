@@ -40,6 +40,7 @@
 
   configs.home = {
     id: 'home',
+    layout: { selectors: ['.home__headline'], breakpoint: 'desktop', liveStyleId: 'home-dev-layout' },
     image: {
       selector: '[data-home-media] .home__media-el',
       mode: 'transform', // movable backdrop — translate + scale, base may show

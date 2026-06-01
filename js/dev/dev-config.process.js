@@ -55,6 +55,7 @@
 
   configs.process = {
     id: 'process',
+    layout: { selectors: ['.process__heading', '.process__lede', '.process__steps'], breakpoint: 'desktop', liveStyleId: 'process-dev-layout' },
     image: {
       selector: '[data-process-media] .process__media-el',
       mode: 'object', // focal crop — always fills the (bleeding) box, no gaps

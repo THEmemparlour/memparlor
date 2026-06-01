@@ -24,6 +24,7 @@
 
   configs.contact = {
     id: 'contact',
+    layout: { selectors: ['.contact__heading', '.contact__lede', '.contact__body'], breakpoint: 'desktop', liveStyleId: 'contact-dev-layout' },
     editor: {
       rootSelector: '[data-contact-root]',
       selectSelectors: '.contact__lede, .contact__body-line, .contact__eyebrow, .contact__title',

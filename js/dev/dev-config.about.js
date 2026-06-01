@@ -22,6 +22,7 @@
 
   configs.about = {
     id: 'about',
+    layout: { selectors: ['.about__heading', '.about__poem'], breakpoint: 'desktop', liveStyleId: 'about-dev-layout' },
     image: {
       selector: '[data-about-media] .about__media-el',
       mode: 'object', // focal crop — always fills the window, no gaps (like FAQ)

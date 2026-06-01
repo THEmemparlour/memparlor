@@ -68,6 +68,10 @@
 /* --- Right column: heading (top) + media (below), pinned ------------------
    The left cell scrolls internally, so this cell simply stays in place. */
 .services__col {
+  /* Pin to the second grid track so it can't auto-place into column 1 when the
+     left list is taken out of grid flow (e.g. the ?dev layout tool sets the list
+     to position:absolute). No-op in the normal layout. */
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;

@@ -31,6 +31,7 @@
 
   configs.faqs = {
     id: 'faqs',
+    layout: { selectors: ['.faqs__heading', '.faqs__list'], breakpoint: 'desktop', liveStyleId: 'faqs-dev-layout' },
     image: {
       selector: '[data-faqs-media] .faqs__media-el',
       mode: 'object', // focal crop — always fills the window, no gaps

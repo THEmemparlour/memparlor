@@ -49,6 +49,10 @@
       const editor = NS.buildEditor?.(cfg);
       if (editor) destroyers.push(editor);
     }
+    if (cfg.layout) {
+      const layout = NS.buildLayout?.(cfg);
+      if (layout) destroyers.push(layout);
+    }
   };
 
   const activeFold = () => document.documentElement.dataset.fold;

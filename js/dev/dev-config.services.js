@@ -53,6 +53,7 @@
 
   configs.services = {
     id: 'services',
+    layout: { selectors: ['.services__heading', '.services__list'], breakpoint: 'desktop', liveStyleId: 'services-dev-layout' },
     image: {
       selector: '[data-services-media] .services__media-el',
       mode: 'object', // focal crop — always fills the box, no gaps (like FAQ/About)
