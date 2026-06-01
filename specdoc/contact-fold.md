@@ -33,9 +33,8 @@ context but scoped to what we're building now.
 - **Route:** `/contact-us` · **Fold id:** `contact` · sixth (last) in scroll order.
 - **Active nav:** `CONTACT US` highlighted (handled automatically by the existing
   `fold:change` → `<site-nav>` flow; no nav changes needed).
-- **Header treatment:** default dark-on-cream — the header sits over cream here,
-  so it does **not** use the FAQ knockout (`--knockout-image`). Nothing fold-
-  specific to do for the header.
+- **Header treatment:** default dark-on-cream — the shared default logo, same as
+  every fold. Nothing fold-specific to do for the header.
 - Fits **one viewport**; no internal page scroll (the embed scrolls within its
   own iframe — see §3.3). Not a `registerScrollable` fold.
 - As the **last** fold, scrolling down clamps (no-op); the only fold-nav from
@@ -205,4 +204,4 @@ exists in `site.json`, so navigation, active-state, and URL sync work as-is.
 - Inline Calendly embed (not popup), placeholder until the URL is provided.
 - Typo **corrected** to "possibilities" (see §0.2).
 - `Story` title is **Jost 500**, not bold (see §0.1).
-- Default dark-on-cream header here (no knockout).
+- Default dark-on-cream header here (shared default logo, same as every fold).

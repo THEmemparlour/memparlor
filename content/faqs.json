@@ -9,8 +9,8 @@
     "src": "/assets/images/faqs-image-placeholder.jpg",
     "alt": "Memory Parlour archival imagery",
     "fit": "cover",
-    "position": "10% 0%",
-    "zoom": 1.3
+    "position": "0% 0%",
+    "zoom": 1.05
   },
   "faqs": [
     {

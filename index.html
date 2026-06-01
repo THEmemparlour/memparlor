@@ -15,14 +15,26 @@
 
   <!-- Base styles + per-fold split -->
   <link rel="stylesheet" href="/css/base.css" />
+  <!-- Saved by the ?dev nav editor; must load after base.css to win the cascade. -->
+  <link rel="stylesheet" href="/css/folds/site.overrides.css" />
   <link rel="stylesheet" href="/css/folds/home.css" />
+  <!-- Saved by the ?dev Home editor; must load after home.css to win the cascade. -->
+  <link rel="stylesheet" href="/css/folds/home.overrides.css" />
   <link rel="stylesheet" href="/css/folds/about.css" />
+  <!-- Saved by the ?dev About editor; must load after about.css to win the cascade. -->
+  <link rel="stylesheet" href="/css/folds/about.overrides.css" />
   <link rel="stylesheet" href="/css/folds/services.css" />
+  <!-- Saved by the ?dev Services editor; must load after services.css to win the cascade. -->
+  <link rel="stylesheet" href="/css/folds/services.overrides.css" />
   <link rel="stylesheet" href="/css/folds/process.css" />
+  <!-- Saved by the ?dev Process editor; must load after process.css to win the cascade. -->
+  <link rel="stylesheet" href="/css/folds/process.overrides.css" />
   <link rel="stylesheet" href="/css/folds/faqs.css" />
   <!-- Saved by the ?dev FAQ editor; must load after faqs.css to win the cascade. -->
   <link rel="stylesheet" href="/css/folds/faqs.overrides.css" />
   <link rel="stylesheet" href="/css/folds/contact.css" />
+  <!-- Saved by the ?dev Contact editor; must load after contact.css to win the cascade. -->
+  <link rel="stylesheet" href="/css/folds/contact.overrides.css" />
 </head>
 <body>
   <!-- Shared header (renders its own markup from content/site.json) -->
@@ -80,8 +92,7 @@
 
     <!-- FAQs — real content, populated client-side by js/faqs.js.
          Three regions: full-height left image | centered Q&A | bottom-right
-         heading. The header's knockout logo (CSS, keyed on data-fold) is fed
-         this same image via the --knockout-image custom property. -->
+         heading. The header logo stays the shared default (solid dark ink). -->
     <section class="fold" data-fold="faqs" id="fold-faqs" aria-label="FAQs">
       <div class="faqs" data-faqs-root>
         <figure class="faqs__image" data-faqs-media></figure>
@@ -123,8 +134,8 @@
   <!-- Process — JSON only. -->
   <script src="/js/process.js" defer></script>
 
-  <!-- FAQs — Q&A + left image + knockout-logo feed. The ?dev focal-point picker
-       is fetched lazily by this script only when ?dev is present. -->
+  <!-- FAQs — Q&A + left image. The ?dev focal-point picker is fetched lazily by
+       this script only when ?dev is present. -->
   <script src="/js/faqs.js" defer></script>
 
   <!-- Contact Us — lede + body + lazy Calendly inline embed. -->

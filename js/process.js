@@ -28,7 +28,9 @@
   renderLede(ledeEl, data.lede);
   renderSteps(stepsEl, data.steps);
   window.MemoryParlour.createHeading(headingEl, data.heading, { prefix: 'process' });
-  const media = window.MemoryParlour.createMedia(mediaEl, data.media, { prefix: 'process' });
+  // 'object' = the FAQ-style focal crop: the bleeding video band stays filled and
+  // media.position / media.zoom reframe which part shows (tunable via ?dev).
+  const media = window.MemoryParlour.createMedia(mediaEl, data.media, { prefix: 'process', cropMode: 'object' });
 
   // Hand the video's play/pause + lazy-load to the fold controller.
   if (media && window.MemoryParlour?.registerFold) {
@@ -36,6 +38,21 @@
       onEnter: media.activate,
       onLeave: media.deactivate,
     });
+  }
+
+  // Dev tooling — only under ?dev: the generic cores + controller (shared, fetched
+  // once across folds) then this fold's config, which registers devConfigs.process
+  // and announces 'dev:rendered'. async=false preserves load order.
+  if (new URLSearchParams(location.search).has('dev')) {
+    const loaded = (window.MemoryParlour._devLoaded = window.MemoryParlour._devLoaded || new Set());
+    for (const src of ['/js/dev/dev-auth.js', '/js/dev/dev-drag.js', '/js/dev/dev-picker.js', '/js/dev/dev-editor.js', '/js/dev/dev-controller.js', '/js/dev/dev-config.process.js']) {
+      if (loaded.has(src)) continue; // shared cores are fetched once across all folds
+      loaded.add(src);
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      document.body.appendChild(s);
+    }
   }
 
   // Lede — each line its own element so the deliberate two-line break is kept.

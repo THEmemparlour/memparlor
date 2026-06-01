@@ -39,12 +39,24 @@ final media assets).
 Requires Node (uses only built-ins — no `npm install` needed).
 
 ```bash
-npm run dev            # serves at http://localhost:8080
-PORT=9000 npm run dev  # pin a specific port
+npm run dev                          # serves at http://localhost:8080
+PORT=9000 npm run dev                # pin a specific port
+MP_DEV_KEY=your-passphrase npm run dev  # require a passphrase for the ?dev tools
 ```
 
 If the port is busy the dev server walks up to the next free one and prints the
 final URL — **watch the console for the actual port**.
+
+**`?dev` passphrase gate.** The in-page dev tooling (the fold picker/editor panels
+**and** the `NAV ✎` nav editor) is **disabled unless `MP_DEV_KEY` is set**. With a
+key set, visiting any fold with `?dev` prompts for the passphrase, validates it
+against the server (`POST /__dev/auth`), and only then mounts the panels. The phrase
+is held in `sessionStorage` (survives fold navigation and reloads in that tab;
+re-prompts after the tab closes) and sent as the `X-Dev-Key` header on every Save,
+which the write endpoints (`/__dev/{crop,content,css}`) require. If `MP_DEV_KEY` is
+unset, the server prints a warning and the tools stay **off** — no prompt, no
+panels (the same as the deployed static site, which has no dev server at all). A
+wrong/cancelled passphrase also leaves the normal site with working navigation.
 
 The dev server (`server/dev-server.js`) serves static files from the repo root
 and falls back to `index.html` for clean routes (e.g. `/about-us`) so deep links
@@ -66,7 +78,7 @@ css/
     about.css              About-only: video block, poem, heading band.
     services.css           Services-only: two-column scroll layout + media slot.
     process.css            Process-only: lede/steps + bottom-bleeding video band.
-    faqs.css               FAQs-only: 3-region layout + knockout-logo header treatment.
+    faqs.css               FAQs-only: 3-region layout (left image | Q&A | heading).
     faqs.overrides.css     Saved by the ?dev FAQ editor; loaded after faqs.css (always).
     contact.css            Contact-only: text | embed | heading 3-region layout.
 js/
@@ -79,8 +91,8 @@ js/
   about.js                 About renderer (video + poem + heading).
   services.js              Services renderer (heading + media + markdown list).
   process.js               Process renderer (lede + numbered steps + video band).
-  faqs.js                  FAQs renderer (left image + Q&A + heading; feeds the
-                           knockout logo; lazy-loads the dev picker under ?dev).
+  faqs.js                  FAQs renderer (left image + Q&A + heading; lazy-loads
+                           the dev picker under ?dev).
   faqs-dev-picker.js       Dev-only image focal-point + zoom picker (?dev only).
   faqs-dev-editor.js       Dev-only FAQ text/structure/CSS editor (?dev only).
   contact.js               Contact renderer (lede + body + lazy Calendly embed).
@@ -88,8 +100,7 @@ content/
   site.json                Shared logo + nav (single source of truth for routes).
   home.json                Home fold content.
   about.json               About fold content (introduces the video media type).
-  services.json            Services fold content (heading + media + body pointer).
-  services.md              Services list, rendered by the in-repo markdown parser.
+  services.json            Services fold content (heading + media + services list).
   process.json             Process fold content (lede + steps + video).
   faqs.json                FAQs fold content (heading + media w/ crop + Q&A pairs).
   contact.json             Contact fold content (lede + body + calendly media).
@@ -230,15 +241,16 @@ video fields (an `image` type ignores them; a `video` type uses them):
 ```
 
 **`content/services.json`** — heading + typed `media` (same shape as About) + a
-`body` pointer to a markdown file. The list copy lives in `content/services.md`
-and is rendered by the small in-repo markdown parser in `js/services.js` (`## h2`
-+ blank-line paragraphs only — no third-party dependency):
+`services` array. Each entry is a `{ label, description }` rendered to a flat
+`<h2>` + `<p>` pair in the scrollable left list (no markdown, no external file):
 
 ```json
 {
   "heading": { "eyebrow": "What we", "title": "Preserve" },
   "media": { "type": "image", "src": "…", … },
-  "body": "services.md"   // fetched + rendered into the scrollable left list
+  "services": [
+    { "label": "Stories:", "description": "Childhood memories, family folklore…" }
+  ]
 }
 ```
 
@@ -273,10 +285,9 @@ array of paragraphs (so the punchy opener → elaboration break is preserved):
 }
 ```
 
-The same `media.src` feeds the FAQ header's **see-through/knockout logo** (the
-logo letters are filled with this image via `background-clip: text`), passed to
-the header as the `--knockout-image` custom property. A dev-only focal-point
-picker for tuning `position` loads only under the `?dev` query flag.
+A dev-only focal-point picker for tuning `position` loads only under the `?dev`
+query flag. (The header logo stays the shared default solid dark ink on this fold,
+same as everywhere else.)
 
 **`media` crop control (`fit`/`position`/`zoom`)** — `createMedia` applies
 `object-fit`/`object-position` (and a `transform: scale()` from `zoom`, origin
@@ -371,9 +382,6 @@ work automatically. Touch `folds.js` only to extend shared navigation behaviour.
   for now.
 - **`fit`/`position` crop control rollout** — currently wired for FAQs only;
   extend to every fold and migrate `home.js` onto the shared `createMedia`.
-- **FAQ knockout polish** — the see-through logo is an approximate CSS fill; a
-  geometry-aligned cut-out and true production-stripping of the `?dev` picker
-  (needs the SSR pass) come later.
 - **Mobile polish** — current responsive behaviour is sensible defaults only.
 
 ---
@@ -386,8 +394,8 @@ work automatically. Touch `folds.js` only to extend shared navigation behaviour.
   `data-fold` mirror, and `registerFold`). They keep folds decoupled.
 - **No build step / no dependencies.** Don't introduce a framework or bundler.
   Keep using native Web Components, plain modules loaded with `<script defer>`,
-  and Node built-ins for tooling. Markdown (e.g. `services.md`) is rendered by a
-  small in-repo parser in `js/services.js` — no third-party markdown library.
+  and Node built-ins for tooling. All fold content is JSON in `content/` — there
+  is no markdown content or parser.
 - **Shared rendering** for the media block (image / video / calendly embed,
   lazy-load, mute control, and the opt-in `fit`/`position` crop control) and the
   eyebrow+title heading lives in `js/media.js` (`window.MemoryParlour.createMedia`

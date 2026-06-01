@@ -1,10 +1,14 @@
 /* ==========================================================================
    Home-fold renderer.
    Reads content/home.json and builds the data-driven segmented headline
-   (upright/italic split) plus the hero media into the Home fold's DOM.
+   (upright/italic split) plus the full-fold hero image.
 
    Headline rule: consecutive `text` segments join with a single space;
    `{ "break": true }` starts a new line.
+
+   The hero is a full-fold cover layer behind the headline; its visible crop is
+   driven by media.position / media.zoom via the shared createMedia helper
+   (object-fit:cover + object-position + scale), tunable with the ?dev picker.
    ========================================================================== */
 
 (async () => {
@@ -21,7 +25,22 @@
   }
 
   renderHeadline(headlineEl, data.headline);
-  renderMedia(mediaEl, data.media);
+  // Full-fold hero via the shared renderer; 'transform' = movable backdrop layer.
+  window.MemoryParlour.createMedia(mediaEl, data.media, { prefix: 'home', imgLoading: 'eager', cropMode: 'transform' });
+
+  // Dev tooling — only under ?dev: home config (registers devConfigs.home) then
+  // the generic picker + editor cores. async=false preserves order.
+  if (new URLSearchParams(location.search).has('dev')) {
+    const loaded = (window.MemoryParlour._devLoaded = window.MemoryParlour._devLoaded || new Set());
+    for (const src of ['/js/dev/dev-auth.js', '/js/dev/dev-drag.js', '/js/dev/dev-picker.js', '/js/dev/dev-editor.js', '/js/dev/dev-controller.js', '/js/dev/dev-config.home.js']) {
+      if (loaded.has(src)) continue; // shared cores are fetched once across all folds
+      loaded.add(src);
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      document.body.appendChild(s);
+    }
+  }
 
   function renderHeadline(el, segments = []) {
     el.textContent = '';
@@ -40,21 +59,6 @@
       span.textContent = seg.text;
       el.appendChild(span);
       lineHasText = true;
-    }
-  }
-
-  function renderMedia(el, media) {
-    el.textContent = '';
-    if (!media) return;
-
-    // Only `image` is modeled today; the typed object leaves room for a future
-    // swap (e.g. a video fold) without a schema change.
-    if (media.type === 'image') {
-      const img = document.createElement('img');
-      img.src = media.src;
-      img.alt = media.alt || '';
-      img.loading = 'eager';
-      el.appendChild(img);
     }
   }
 })();

@@ -1,19 +1,40 @@
 /* ==========================================================================
    Memory Parlour — Home fold
-   Headline type treatment, hero-image positioning/cropping, and the
-   headline-over-image overlap. (Base tokens & fold framework live in base.css.)
+   A 3-layer stack: the headline (top) sits over a full-fold hero image (middle),
+   which sits over the solid base background (bottom). The image is a full-bleed
+   cover layer; it's a movable backdrop — media.position / media.zoom pan + scale
+   it (translate + scale), and zooming out reveals the base. Tunable via ?dev.
+   (Base tokens & fold framework live in base.css.)
    ========================================================================== */
 
 .home {
   position: relative;
   width: 100%;
   height: 100%;
+  /* Bottom layer — solid base (unchanged cream token; shows where the image
+     doesn't cover, e.g. when zoomed out). */
   background: var(--color-bg);
 }
 
-/* --- Hero headline ---------------------------------------------------------
-   Centered, below the header. Upright serif with two true-italic words.
-   Sits above the image (z-index) so its last line overlaps the hero top. */
+/* --- Layer 2 (middle): full-fold hero image, behind the text --------------- */
+.home__media {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  overflow: hidden;
+}
+
+.home__media-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* base fill; translate + scale come from the crop control */
+  display: block;
+}
+
+/* --- Layer 1 (top): headline ----------------------------------------------
+   Centered, below the header, layered above the image. Upright serif with
+   true-italic words. */
 .home__headline {
   position: absolute;
   top: calc(var(--header-h) + clamp(20px, 6vh, 64px));
@@ -44,28 +65,7 @@
   letter-spacing: 0.02em;
 }
 
-/* --- Hero image ------------------------------------------------------------
-   Lower portion of the fold, with cream gutters left and right (not full-bleed).
-   Anchored by its top; its natural height runs past the fold's bottom edge and
-   is cropped by the 100vh fold boundary (overflow:hidden on .fold). */
-.home__media {
-  position: absolute;
-  left: var(--page-gutter);
-  right: var(--page-gutter);
-  top: clamp(33%, 35vh, 40%);
-  z-index: 1;
-  margin: 0;
-  overflow: hidden;
-}
-
-.home__media img {
-  width: 100%;
-  height: auto;
-  display: block;
-  object-fit: cover;
-}
-
-/* Narrow widths — tighten gutters and pull the image up a touch. */
+/* Narrow widths — tighten the headline; the image stays full-fold. */
 @media (max-width: 768px) {
   .home__headline {
     top: calc(var(--header-h) + clamp(16px, 4vh, 40px));
@@ -73,11 +73,5 @@
     padding: 0 18px;
     font-size: clamp(1rem, 4.7vw, 2rem);
     letter-spacing: 0.02em;
-  }
-
-  .home__media {
-    left: clamp(12px, 4vw, 24px);
-    right: clamp(12px, 4vw, 24px);
-    top: 46%;
   }
 }

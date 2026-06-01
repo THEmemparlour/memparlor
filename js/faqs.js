@@ -5,12 +5,8 @@
    Q&A list (each answer is an array of paragraphs so deliberate breaks survive),
    and the bottom-right heading (shared createHeading).
 
-   The header's see-through/knockout logo is pure CSS keyed on
-   <html data-fold="faqs"> (see css/folds/faqs.css). The only dynamic input it
-   needs is the image URL, which this renderer publishes as the --knockout-image
-   custom property and then flips on with the `is-knockout-ready` class — gating
-   the transparent text-fill so the logo never renders invisible before the
-   image is known (e.g. on a deep-link to /faqs).
+   The header logo is the shared default (solid dark ink) on this fold, same as
+   everywhere else — no FAQ-specific treatment.
 
    Dev-only focal-point picker: loaded only under ?dev, so normal visitors never
    fetch it (no build step yet to strip it — see specdoc/faqs-fold.md §0.5).
@@ -30,24 +26,27 @@
     return;
   }
 
-  window.MemoryParlour.createMedia(mediaEl, data.media, { prefix: 'faqs' });
+  window.MemoryParlour.createMedia(mediaEl, data.media, { prefix: 'faqs', cropMode: 'object' });
   window.MemoryParlour.createHeading(headingEl, data.heading, { prefix: 'faqs' });
   renderFaqs(listEl, data.faqs);
 
-  // Feed the knockout logo the same image, then enable the effect.
-  if (data.media?.src) {
-    document.documentElement.style.setProperty('--knockout-image', `url("${data.media.src}")`);
-    document.documentElement.classList.add('is-knockout-ready');
-  }
+  // A long Q&A list scrolls inside its own column (the heading stays pinned); hand
+  // that region to the controller so wheel/keys scroll it and nav hands off at the
+  // top/bottom edges — same pattern as the Services list.
+  window.MemoryParlour?.registerScrollable?.('faqs', listEl);
 
-  // Dev tooling — fetched/activated only when ?dev is present: the image crop
-  // picker and the text/structure/CSS editor. Both run after this render, so the
-  // FAQ DOM they bind to already exists.
+  // Dev tooling — fetched only when ?dev is present: the generic crop picker,
+  // text/structure/CSS editor, and controller cores (shared, fetched once across
+  // folds) then this fold's config, which registers devConfigs.faqs and announces
+  // 'dev:rendered'. Loaded after this render so the FAQ DOM exists.
   if (new URLSearchParams(location.search).has('dev')) {
-    for (const src of ['/js/faqs-dev-picker.js', '/js/faqs-dev-editor.js']) {
+    const loaded = (window.MemoryParlour._devLoaded = window.MemoryParlour._devLoaded || new Set());
+    for (const src of ['/js/dev/dev-auth.js', '/js/dev/dev-drag.js', '/js/dev/dev-picker.js', '/js/dev/dev-editor.js', '/js/dev/dev-controller.js', '/js/dev/dev-config.faqs.js']) {
+      if (loaded.has(src)) continue; // shared cores are fetched once across all folds
+      loaded.add(src);
       const s = document.createElement('script');
       s.src = src;
-      s.defer = true;
+      s.async = false;
       document.body.appendChild(s);
     }
   }

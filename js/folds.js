@@ -25,11 +25,14 @@
   let current = 0;
   let locked = false; // touch gesture lock
 
-  // Dev mode (?dev): the FAQ crop picker owns scroll/swipe/arrow input, so we
-  // disable gesture navigation for the session. Nav-bar/logo clicks (fold:goto)
-  // and back/forward (popstate) stay live. Read once at load — not re-evaluated
-  // per event, so the query string dropping off on pushState can't unlock it.
-  const navLocked = new URLSearchParams(location.search).has('dev');
+  // Dev mode (?dev): the crop picker owns scroll/swipe/arrow input, so we disable
+  // gesture navigation for the session. Nav-bar/logo clicks (fold:goto) and
+  // back/forward (popstate) stay live. We lock while a dev session is pending/active;
+  // if the passphrase is wrong/cancelled (or we're on production with no dev server),
+  // dev-auth.js dispatches 'dev:locked' and we restore normal navigation. On a
+  // successful unlock it simply stays locked.
+  let navLocked = new URLSearchParams(location.search).has('dev');
+  document.addEventListener('dev:locked', () => { navLocked = false; });
 
   // Wheel state (timestamp-based; no timers that a busy event stream can starve).
   let wheelArmed = true; // ready to accept the next step
@@ -128,7 +131,9 @@
       window.history[history === 'replace' ? 'replaceState' : 'pushState'](
         { fold: route.fold },
         '',
-        route.path
+        // Keep the query string (e.g. ?dev) across navigation — only the path
+        // changes between folds. popstate still matches on location.pathname.
+        route.path + location.search
       );
     }
 

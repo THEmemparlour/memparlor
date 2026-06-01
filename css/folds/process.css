@@ -164,12 +164,29 @@
     padding-right: clamp(16px, 5vw, 28px);
   }
 
+  /* Drop the top box out of the positioning chain so the heading below can pin to
+     the fold (.process) itself, not to this box. The intro keeps its own z-index so
+     it still paints above the video band. */
   .process__top {
-    flex-direction: column-reverse; /* heading sits above the lede */
+    position: static;
     gap: clamp(14px, 3vh, 26px);
   }
 
-  .process__heading { text-align: left; }
+  .process__intro {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Pin the heading to the fold's bottom-right corner (over the bleeding video
+     band) rather than dropping it to the top-left. */
+  .process__heading {
+    position: absolute;
+    right: clamp(16px, 5vw, 28px);
+    bottom: clamp(16px, 4vh, 28px);
+    margin: 0;
+    text-align: right;
+    z-index: 3;
+  }
 
   .process__video {
     left: clamp(12px, 4vw, 24px);

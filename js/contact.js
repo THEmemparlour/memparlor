@@ -39,6 +39,22 @@
     });
   }
 
+  // Dev tooling — only under ?dev: the generic editor core + controller (shared,
+  // fetched once across folds) then this fold's config, which registers
+  // devConfigs.contact and announces 'dev:rendered'. No crop picker — Contact's
+  // media is the Calendly embed, not an image. async=false preserves order.
+  if (new URLSearchParams(location.search).has('dev')) {
+    const loaded = (window.MemoryParlour._devLoaded = window.MemoryParlour._devLoaded || new Set());
+    for (const src of ['/js/dev/dev-auth.js', '/js/dev/dev-drag.js', '/js/dev/dev-editor.js', '/js/dev/dev-controller.js', '/js/dev/dev-config.contact.js']) {
+      if (loaded.has(src)) continue; // shared cores are fetched once across all folds
+      loaded.add(src);
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      document.body.appendChild(s);
+    }
+  }
+
   // Body — each paragraph its own element (array preserves deliberate breaks).
   function renderBody(el, lines = []) {
     el.textContent = '';

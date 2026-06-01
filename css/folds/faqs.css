@@ -1,14 +1,17 @@
 /* ==========================================================================
    FAQs fold — per-fold styles only (base.css owns tokens/header/fold framework).
    Three regions: full-height left image | centered Q&A list | bottom-right
-   heading. Plus the FAQ-only header treatment: a see-through/knockout logo,
-   keyed off <html data-fold="faqs"> so it applies on enter and reverts on leave
-   with no JS theme-switching. See specdoc/faqs-fold.md.
+   heading. The header logo is the shared default (solid dark ink) — no FAQ-only
+   treatment. See specdoc/faqs-fold.md.
    ========================================================================== */
 
 .faqs {
   display: grid;
   grid-template-columns: clamp(260px, 34vw, 520px) 1fr;
+  /* Pin the single row to the fold height (minmax floor 0, not auto) so a long
+     Q&A list scrolls *inside* the main column instead of growing it past 100vh
+     and dragging the bottom-pinned heading off-screen with it. */
+  grid-template-rows: minmax(0, 1fr);
   width: 100%;
   height: 100%;
 }
@@ -32,16 +35,34 @@
 /* --- Right: centered Q&A list + bottom-right heading share this region --- */
 .faqs__main {
   position: relative;
+  min-height: 0; /* let this grid cell shrink so the list's overflow scrolls, not the page */
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Clear the fixed header up top; gutter on the sides + bottom. */
-  padding: var(--header-h) var(--page-gutter) var(--page-gutter);
+  /* Clear the fixed header up top; sides gutter. The extra bottom space reserves
+     room for the absolutely-positioned heading so the centered/scrolling list
+     never sits on top of it. */
+  padding: var(--header-h) var(--page-gutter) clamp(5rem, 15vh, 8.5rem);
 }
 
 .faqs__list {
   width: 100%;
   max-width: 34rem;
+  /* Scroll the list itself once it's taller than the available band (the heading
+     stays put). min-height:0 lets the flex item shrink below its content size. */
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: clamp(8px, 1.5vw, 24px);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-hairline) transparent;
+}
+
+.faqs__list::-webkit-scrollbar { width: 6px; }
+.faqs__list::-webkit-scrollbar-thumb {
+  background: var(--color-ink-hairline);
+  border-radius: 3px;
 }
 
 .faqs__item + .faqs__item {
@@ -99,28 +120,6 @@
   text-transform: capitalize;
 }
 
-/* ==========================================================================
-   FAQ header treatment — see-through / knockout logo.
-   Fill the three logo text parts with the fold's left image via
-   background-clip:text (approximate fill — not pixel-aligned to the photo
-   behind; see spec §0.1). Gated on `is-knockout-ready` so the transparent
-   text-fill only turns on once js/faqs.js has published --knockout-image,
-   never leaving the logo invisible. Nav links stay default dark on cream.
-   ========================================================================== */
-
-html.is-knockout-ready[data-fold="faqs"] .logo__tagline,
-html.is-knockout-ready[data-fold="faqs"] .logo__wordmark,
-html.is-knockout-ready[data-fold="faqs"] .logo__est {
-  background-image: var(--knockout-image);
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: var(--knockout-pos, left center);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
-
 /* --- Responsive: stack image / Q&A / heading (sensible default only) --- */
 @media (max-width: 768px) {
   .faqs {
@@ -129,12 +128,19 @@ html.is-knockout-ready[data-fold="faqs"] .logo__est {
   }
 
   .faqs__main {
-    padding: clamp(20px, 6vh, 48px) var(--page-gutter) var(--page-gutter);
+    /* Bottom padding reserves room for the pinned heading so the scrolling list
+       doesn't slide under it. */
+    padding: clamp(20px, 6vh, 48px) var(--page-gutter) clamp(4.5rem, 13vh, 7rem);
   }
 
+  /* Keep the heading pinned to the bottom-right (here, of the lower grid row,
+     which is the bottom of the fold) rather than dropping it left/in-flow. */
   .faqs__heading {
-    position: static;
-    text-align: left;
-    margin-top: clamp(20px, 4vh, 36px);
+    position: absolute;
+    right: clamp(16px, 5vw, 28px);
+    bottom: clamp(16px, 4vh, 28px);
+    margin: 0;
+    text-align: right;
+    z-index: 3;
   }
 }
