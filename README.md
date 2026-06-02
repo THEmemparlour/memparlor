@@ -47,16 +47,18 @@ MP_DEV_KEY=your-passphrase npm run dev  # require a passphrase for the ?dev tool
 If the port is busy the dev server walks up to the next free one and prints the
 final URL — **watch the console for the actual port**.
 
-**`?dev` passphrase gate.** The in-page dev tooling (the fold picker/editor panels
-**and** the `NAV ✎` nav editor) is **disabled unless `MP_DEV_KEY` is set**. With a
-key set, visiting any fold with `?dev` prompts for the passphrase, validates it
-against the server (`POST /__dev/auth`), and only then mounts the panels. The phrase
-is held in `sessionStorage` (survives fold navigation and reloads in that tab;
-re-prompts after the tab closes) and sent as the `X-Dev-Key` header on every Save,
-which the write endpoints (`/__dev/{crop,content,css}`) require. If `MP_DEV_KEY` is
-unset, the server prints a warning and the tools stay **off** — no prompt, no
-panels (the same as the deployed static site, which has no dev server at all). A
-wrong/cancelled passphrase also leaves the normal site with working navigation.
+**`?dev` passphrase gate.** The in-page dev tooling (the per-fold picker / text
+editor / layout / media panels, the floating **SAVE ALL** button, **and** the
+`NAV ✎` nav editor) is **disabled unless `MP_DEV_KEY` is set**. With a key set,
+visiting any fold with `?dev` prompts for the passphrase, validates it against the
+server (`POST /__dev/auth`), and only then mounts the panels. The phrase is held in
+`sessionStorage` (survives fold navigation and reloads in that tab; re-prompts after
+the tab closes) and sent as the `X-Dev-Key` header on every Save, which the write
+endpoints (`/__dev/{crop,content,css,layout,media,upload}`) all require. If
+`MP_DEV_KEY` is unset, the server prints a warning and the tools stay **off** — no
+prompt, no panels (the same as the deployed static site, which has no dev server at
+all). A wrong/cancelled passphrase also leaves the normal site with working
+navigation.
 
 The dev server (`server/dev-server.js`) serves static files from the repo root
 and falls back to `index.html` for clean routes (e.g. `/about-us`) so deep links
@@ -90,7 +92,8 @@ public-fetch smoke test.
 ## Project structure
 
 ```
-index.html                 Single page: <site-nav> + six fold <section>s.
+index.html                 Single page: <site-nav> + six fold <section>s. Links
+                           base.css + each fold's .css / .overrides.css / .layout.css.
 css/
   base.css                 Design tokens (:root), reset, fonts, header styles,
                            the fold layout + crossfade framework, responsive
@@ -101,23 +104,43 @@ css/
     services.css           Services-only: two-column scroll layout + media slot.
     process.css            Process-only: lede/steps + bottom-bleeding video band.
     faqs.css               FAQs-only: 3-region layout (left image | Q&A | heading).
-    faqs.overrides.css     Saved by the ?dev FAQ editor; loaded after faqs.css (always).
     contact.css            Contact-only: text | embed | heading 3-region layout.
+    <fold>.overrides.css   One per fold: curated text-CSS saved by the ?dev editor,
+                           loaded after <fold>.css so it wins the cascade. Auto-generated.
+    <fold>.layout.css      One per fold: desktop-only block position/width saved by
+                           the ?dev layout tool (wrapped in a min-width:769px @media).
+                           Auto-generated.
+    site.overrides.css     Nav/header text-CSS saved by the ?dev NAV editor (after
+                           base.css). Auto-generated.
 js/
-  nav.js                   <site-nav> Web Component (logo + nav, active state).
+  nav.js                   <site-nav> Web Component (logo + nav, active state); also
+                           lazy-loads the dev NAV editor config under ?dev.
   folds.js                 Fold controller: input handling, crossfade, URL sync,
-                           end-clamping, fold lifecycle + scrollable hooks.
+                           end-clamping, fold lifecycle + scrollable hooks, and the
+                           ?dev gesture-nav lock.
   media.js                 Shared renderers: createMedia + createHeading, used by
-                           about/services/process/faqs/contact (on window.MemoryParlour).
-  home.js                  Home renderer (segmented headline + hero media).
+                           every fold (home/about/services/process/faqs/contact) on
+                           window.MemoryParlour.
+  home.js                  Home renderer (segmented headline + shared hero media).
   about.js                 About renderer (video + poem + heading).
-  services.js              Services renderer (heading + media + markdown list).
+  services.js              Services renderer (heading + media + {label,description}
+                           list — plain text, no markdown).
   process.js               Process renderer (lede + numbered steps + video band).
-  faqs.js                  FAQs renderer (left image + Q&A + heading; lazy-loads
-                           the dev picker under ?dev).
-  faqs-dev-picker.js       Dev-only image focal-point + zoom picker (?dev only).
-  faqs-dev-editor.js       Dev-only FAQ text/structure/CSS editor (?dev only).
+  faqs.js                  FAQs renderer (left image + Q&A + heading).
   contact.js               Contact renderer (lede + body + lazy Calendly embed).
+  dev/                     ?dev-only authoring suite, lazy-loaded by each fold
+                           renderer (and nav.js) only when ?dev is present — never
+                           shipped to the live site:
+    dev-auth.js              Passphrase flow (POST /__dev/auth) + dev:unlocked/locked.
+    dev-controller.js        Mounts the active fold's panels on enter, tears them down
+                             on leave; owns the SAVE ALL button (Cmd/Ctrl+S).
+    dev-drag.js              Makes the dev panels draggable.
+    dev-picker.js            Generic image focal-point + zoom picker (media.position/zoom).
+    dev-editor.js            Generic text / structure / curated-CSS editor.
+    dev-layout.js            Generic free block position/width tool (desktop only).
+    dev-media.js             Generic media manager: upload to R2 or paste a URL, preview, save.
+    dev-config.<fold>.js     Per-fold registration of which panels + selectors to use.
+    dev-config.site.js       Nav/header registration + the floating NAV toggle.
 content/
   site.json                Shared logo + nav (single source of truth for routes).
   home.json                Home fold content.
@@ -132,10 +155,14 @@ assets/
   icons/                   (empty — no icons/favicon committed yet)
 server/
   dev-server.js            Zero-dependency static server with SPA fallback, plus dev-only
-                           POST /__dev/{crop,content,css} endpoints (the ?dev tools' Save).
+                           POST /__dev/{auth,crop,content,css,layout,media,upload}
+                           endpoints (the ?dev tools' Save + media upload).
+  r2.js                    Hand-rolled AWS SigV4 → Cloudflare R2 PUT (Node built-ins
+                           only); used by POST /__dev/upload.
+  r2.test.js               Offline SigV4 test-vector check (npm run test:r2); also a
+                           live PUT smoke test when the R2_* env is set.
 specdoc/                    Per-fold specifications: home, about, services, process,
                            faqs, contact.
-The Memory Parlour mockup images/   Source design mockups (PNG) the folds are built from.
 ```
 
 ---
@@ -315,21 +342,39 @@ same as everywhere else.)
 `object-fit`/`object-position` (and a `transform: scale()` from `zoom`, origin
 tied to `position`) from these fields **only when present**, so it's opt-in and
 doesn't override a fold's own CSS. `zoom` is a numeric multiplier (`1` = none;
-`>1` magnifies into the focal point, `<1` shrinks within the frame). Currently
-wired for FAQs — tune `position`+`zoom` live with the `?dev` picker (drag, a
-▲▼◀▶ D-pad, or the **arrow keys** to pan; − / + buttons to zoom; a **Save** button
-that writes back to `faqs.json` via the dev server's `POST /__dev/crop`). While
-`?dev` is set, `js/folds.js` disables gesture navigation (scroll/swipe/arrows) so
-the arrows pan instead of changing folds — nav-bar clicks still work. Rolling the
-crop control out to every fold (and migrating `home.js` onto the shared renderer)
-is a later task.
+`>1` magnifies into the focal point, `<1` shrinks within the frame). It's wired on
+**every fold** that has media (home now uses the shared `createMedia` too) — tune
+`position`+`zoom` live with the `?dev` picker (drag, a ▲▼◀▶ D-pad, or the **arrow
+keys** to pan; − / + buttons to zoom; a **Save** button that writes back to
+`content/<fold>.json` via the dev server's `POST /__dev/crop`). Home applies the
+crop as a movable backdrop layer (`cropMode: 'transform'`); the other folds use the
+always-filled focal crop (`cropMode: 'object'`). While `?dev` is set, `js/folds.js`
+disables gesture navigation (scroll/swipe/arrows) so the arrows pan instead of
+changing folds — nav-bar clicks still work.
 
-`?dev` also loads an **in-page FAQ editor** (`js/faqs-dev-editor.js`): click text
-to select, double-click to edit; add/remove/reorder Q&A; edit a curated set of text
-CSS on the shared class rule with live preview. **Save text** writes `heading`+`faqs`
-to `faqs.json` (`POST /__dev/content`, preserving `media`); **Save CSS** writes the
-curated overrides to `css/folds/faqs.overrides.css` (`POST /__dev/css`), which is
-linked after `faqs.css` and loaded always so the edits are real. FAQ-only for now.
+`?dev` also loads a generalized **in-page authoring suite** (`js/dev/`, lazy-loaded
+by each fold renderer and `nav.js` only under `?dev`). The same generic cores run on
+**every fold**, driven by a per-fold `dev-config.<fold>.js` registration:
+
+- **Text / structure editor** (`dev-editor.js`) — click text to select, double-click
+  to edit; add/remove/reorder list items (Q&A, services, steps, poem / headline
+  segments); edit a curated set of text CSS on the shared class rule with live
+  preview. **Save text** → `POST /__dev/content` (writes the fold's content keys,
+  preserving `media`); **Save CSS** → `POST /__dev/css` (writes
+  `css/folds/<fold>.overrides.css`, linked after `<fold>.css`).
+- **Focal-point picker** (`dev-picker.js`) — the crop control above (`POST /__dev/crop`).
+- **Layout tool** (`dev-layout.js`, desktop only) — free block position/width →
+  `POST /__dev/layout` (writes `css/folds/<fold>.layout.css`, wrapped in a
+  `min-width:769px` media query so the mobile flow is untouched).
+- **Media manager** (`dev-media.js`) — upload a file (streamed to R2) or paste a URL,
+  preview live, then `POST /__dev/media` to write `media.{src,alt,poster}`.
+
+A single floating **SAVE ALL** button (and `Cmd/Ctrl+S`) flushes every pending edit
+on the active fold plus the nav, saving **serially** so the writers can't clobber
+the shared `content/<fold>.json`. The shared nav/header has its own editor via
+`dev-config.site.js` + a floating **NAV** toggle, mounted outside the fold
+controller so it persists across folds. Every write requires the `X-Dev-Key` header,
+and a server-side validator whitelists each selector/field before writing.
 
 **`content/contact.json`** — a single-line `lede` + a `body` paragraph array + a
 `calendly` media embed + heading:
@@ -381,6 +426,12 @@ the same recipe applies to any future fold (using `services` as the example):
    a `<script defer>` for it before `</body>`.
 5. **Lifecycle (only if needed)** — if the fold has active-only behaviour (video,
    autoplay, animation), call `window.MemoryParlour.registerFold(...)`.
+6. **Dev tooling (optional)** — to get the `?dev` editor / picker / layout / media
+   panels on the new fold: link `css/folds/services.overrides.css` and
+   `css/folds/services.layout.css` in `index.html`, add a server-side `FOLDS.services`
+   entry (validator + selector whitelists) in `server/dev-server.js`, write
+   `js/dev/dev-config.services.js`, and lazy-load the `js/dev/` cores from the
+   renderer under `?dev` (copy the block any existing fold renderer uses).
 
 No change to `js/folds.js` or `js/nav.js` is needed for a normal content fold —
 the route already exists in `site.json`, and the nav/active-state/URL sync all
@@ -394,17 +445,18 @@ work automatically. Touch `folds.js` only to extend shared navigation behaviour.
   inject metadata per route.
 - **Deploy config** (`wrangler.jsonc`) — Cloudflare Workers deployment.
 - **Real design system** — final fonts, exact colors, spacing tokens.
-- **Final media assets** — hero image, the About/Process videos, and the FAQ
-  image (currently placeholders; the About/Process videos are poster-only with
-  empty `src` and the real ones will exceed the 25 MiB static cap, so they'll
-  point at Cloudflare Stream or R2).
+- **Final media assets** — the hero image, the About/Process videos, and the FAQ
+  image are still placeholders (the About/Process videos are poster-only with an
+  empty `src`). The R2 upload path is now wired (see *Media upload to Cloudflare
+  R2* above), so dropping the real assets in is a content task; very large videos
+  may still point at Cloudflare Stream.
 - **Real Calendly URL** — the Contact embed shows a placeholder until
   `contact.json`'s `media.url` is set; the live widget then lazy-loads on first
   enter. Third-party consent/cookie handling for the embed is also out of scope
   for now.
-- **`fit`/`position` crop control rollout** — currently wired for FAQs only;
-  extend to every fold and migrate `home.js` onto the shared `createMedia`.
-- **Mobile polish** — current responsive behaviour is sensible defaults only.
+- **Mobile polish** — current responsive behaviour is sensible defaults only (the
+  `?dev` layout tool is desktop-only; the `mobile` breakpoint is stubbed but not
+  yet wired).
 
 ---
 
@@ -423,6 +475,11 @@ work automatically. Touch `folds.js` only to extend shared navigation behaviour.
   eyebrow+title heading lives in `js/media.js` (`window.MemoryParlour.createMedia`
   / `createHeading`); reuse it when a new fold needs either, rather than
   re-implementing per fold.
+- **Keep the `?dev` tooling in sync.** It lives in `js/dev/` and is lazy-loaded by
+  each fold renderer (and `nav.js`) only under `?dev` — it never ships to the live
+  site. If you change a fold's content shape, also update that fold's
+  `FOLDS.<fold>` validator/selector whitelist in `server/dev-server.js` and its
+  `js/dev/dev-config.<fold>.js`, or the editor/save round-trip will reject it.
 - **Verify in a browser**, not just by reading code — the dev server plus a
   headless browser screenshot/DOM-dump catches layout and navigation regressions.
 - **Use the tokens** in `base.css`; treat colors/fonts as placeholders pending
