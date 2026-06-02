@@ -1,0 +1,30 @@
+# The repo root is uploaded to Cloudflare as the published static site, EXCEPT
+# the paths below. Uses .gitignore syntax. Keep in sync with anything that must
+# never be public.
+
+# Build-time dependencies. wrangler/workerd ship 100+ MiB binaries, over the
+# 25 MiB per-asset limit — excluding this is what fixes the failed deploy.
+node_modules/
+
+# Secrets / local env — must never be served.
+.env
+.env.*
+
+# Server-side dev tooling & internal docs — not part of the static site.
+server/
+specdoc/
+
+# Repo, tooling & OS metadata.
+.git/
+.gitignore
+.assetsignore
+.claude/
+.wrangler/
+wrangler.jsonc
+wrangler.toml
+package.json
+package-lock.json
+bun.lockb
+README.md
+*.log
+.DS_Store

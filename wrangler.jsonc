@@ -1,0 +1,16 @@
+{
+  // Static-assets-only Worker for the Memory Parlour site. The published site is
+  // the repo root; non-public files (server/, specdoc/, .env, node_modules/, …)
+  // are kept out of the upload by .assetsignore, so they are never served.
+  // Committing this stops `wrangler deploy` from auto-detecting "Output Directory: ."
+  // and re-generating a config on every build.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "memparlor",
+  "compatibility_date": "2026-06-02",
+  "assets": {
+    "directory": "."
+  },
+  "observability": {
+    "enabled": true
+  }
+}

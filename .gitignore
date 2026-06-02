@@ -16,6 +16,9 @@ npm-debug.log*
 # Node
 node_modules/
 
+# Wrangler / Cloudflare build artifacts
+.wrangler/
+
 # Secrets / local env — never commit these
 .env
 .env.local
