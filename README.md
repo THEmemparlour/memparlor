@@ -54,7 +54,7 @@ visiting any fold with `?dev` prompts for the passphrase, validates it against t
 server (`POST /__dev/auth`), and only then mounts the panels. The phrase is held in
 `sessionStorage` (survives fold navigation and reloads in that tab; re-prompts after
 the tab closes) and sent as the `X-Dev-Key` header on every Save, which the write
-endpoints (`/__dev/{crop,content,css,layout,media,upload}`) all require. If
+endpoints (`/__dev/{crop,content,css,layout,layout-mobile,media,upload}`) all require. If
 `MP_DEV_KEY` is unset, the server prints a warning and the tools stay **off** — no
 prompt, no panels (the same as the deployed static site, which has no dev server at
 all). A wrong/cancelled passphrase also leaves the normal site with working
@@ -93,7 +93,9 @@ public-fetch smoke test.
 
 ```
 index.html                 Single page: <site-nav> + six fold <section>s. Links
-                           base.css + each fold's .css / .overrides.css / .layout.css.
+                           base.css + each fold's .css / .overrides.css / .layout.css / .layout.mobile.css.
+dev-shell.html             DEV-ONLY parent page for the ?dev mobile layout shell (never linked
+                           from the live site): hosts the live site in a phone-width <iframe>.
 css/
   base.css                 Design tokens (:root), reset, fonts, header styles,
                            the fold layout + crossfade framework, responsive
@@ -110,8 +112,12 @@ css/
     <fold>.layout.css      One per fold: desktop-only block position/width saved by
                            the ?dev layout tool (wrapped in a min-width:769px @media).
                            Auto-generated.
+    <fold>.layout.mobile.css  Per fold: ≤768px block position/width saved by the ?dev
+                           mobile layout shell (max-width:768px @media; a separate file from
+                           .layout.css so neither save clobbers the other). Auto-generated.
     site.overrides.css     Nav/header text-CSS saved by the ?dev NAV editor (after
                            base.css). Auto-generated.
+  dev-shell.css            DEV-ONLY styles for dev-shell.html (the mobile layout shell).
 js/
   nav.js                   <site-nav> Web Component (logo + nav, active state); also
                            lazy-loads the dev NAV editor config under ?dev.
@@ -139,6 +145,11 @@ js/
     dev-editor.js            Generic text / structure / curated-CSS editor.
     dev-layout.js            Generic free block position/width tool (desktop only).
     dev-media.js             Generic media manager: upload to R2 or paste a URL, preview, save.
+    dev-agent.js             Mobile layout agent: runs INSIDE the dev-shell iframe (?dev&shell) —
+                             the layout tool's geometry/drag pinned to the mobile breakpoint,
+                             driven by the parent shell over postMessage; saves to /__dev/layout-mobile.
+    dev-shell.js             Parent page for dev-shell.html: hosts the phone-width iframe + the
+                             layout controls, runs the passphrase flow once, drives dev-agent.js.
     dev-config.<fold>.js     Per-fold registration of which panels + selectors to use.
     dev-config.site.js       Nav/header registration + the floating NAV toggle.
 content/
@@ -155,14 +166,15 @@ assets/
   icons/                   (empty — no icons/favicon committed yet)
 server/
   dev-server.js            Zero-dependency static server with SPA fallback, plus dev-only
-                           POST /__dev/{auth,crop,content,css,layout,media,upload}
+                           POST /__dev/{auth,crop,content,css,layout,layout-mobile,media,upload}
                            endpoints (the ?dev tools' Save + media upload).
   r2.js                    Hand-rolled AWS SigV4 → Cloudflare R2 PUT (Node built-ins
                            only); used by POST /__dev/upload.
   r2.test.js               Offline SigV4 test-vector check (npm run test:r2); also a
                            live PUT smoke test when the R2_* env is set.
-specdoc/                    Per-fold specifications: home, about, services, process,
-                           faqs, contact.
+specdoc/                    Specs: the six per-fold specifications (home, about, services,
+                           process, faqs, contact) + mobile-layout-shell (the ?dev mobile
+                           layout preview shell).
 ```
 
 ---
@@ -272,7 +284,9 @@ Renderer rule: consecutive `text` segments join with a space; `{ "break": true }
 inserts a line break.
 
 **`content/about.json`** — the `media` object **extends** the Home shape with
-video fields (an `image` type ignores them; a `video` type uses them):
+video fields (an `image` type ignores them; a `video` type uses them). A `video`
+always renders native player `controls` (play/pause + unmute); `showMuteControl`
+adds an extra corner mute toggle on top and is off by default:
 
 ```json
 {
@@ -344,9 +358,10 @@ tied to `position`) from these fields **only when present**, so it's opt-in and
 doesn't override a fold's own CSS. `zoom` is a numeric multiplier (`1` = none;
 `>1` magnifies into the focal point, `<1` shrinks within the frame). It's wired on
 **every fold** that has media (home now uses the shared `createMedia` too) — tune
-`position`+`zoom` live with the `?dev` picker (drag, a ▲▼◀▶ D-pad, or the **arrow
+`position`+`zoom` live with the `?dev` picker (a ▲▼◀▶ D-pad or the **arrow
 keys** to pan; − / + buttons to zoom; a **Save** button that writes back to
-`content/<fold>.json` via the dev server's `POST /__dev/crop`). Home applies the
+`content/<fold>.json` via the dev server's `POST /__dev/crop`). The media itself is
+**not** mouse-draggable — repositioning is panel- and keyboard-only. Home applies the
 crop as a movable backdrop layer (`cropMode: 'transform'`); the other folds use the
 always-filled focal crop (`cropMode: 'object'`). While `?dev` is set, `js/folds.js`
 disables gesture navigation (scroll/swipe/arrows) so the arrows pan instead of
@@ -365,7 +380,17 @@ by each fold renderer and `nav.js` only under `?dev`). The same generic cores ru
 - **Focal-point picker** (`dev-picker.js`) — the crop control above (`POST /__dev/crop`).
 - **Layout tool** (`dev-layout.js`, desktop only) — free block position/width →
   `POST /__dev/layout` (writes `css/folds/<fold>.layout.css`, wrapped in a
-  `min-width:769px` media query so the mobile flow is untouched).
+  `min-width:769px` media query so the mobile flow is untouched). Its panel also
+  has an *Edit mobile view ↗* button that opens the mobile layout shell below.
+- **Mobile layout shell** (`dev-shell.html` + `dev-shell.js` + `dev-agent.js`,
+  desktop-operated) — the mobile sibling of the layout tool. It hosts the live site
+  in a phone-width `<iframe>` so the real `@media (max-width:768px)` cascade fires;
+  you drag blocks *inside* the frame while the controls sit beside it in the desktop
+  space (so the panel never crowds the ~390px canvas). Saves ≤768px block
+  position/width to a separate `css/folds/<fold>.layout.mobile.css` via
+  `POST /__dev/layout-mobile` — a disjoint file + media query from the desktop
+  `.layout.css`, so neither save clobbers the other. Layout-only; reuses `dev-auth.js`
+  (one prompt, inherited by the same-origin frame). See `specdoc/mobile-layout-shell.spec.md`.
 - **Media manager** (`dev-media.js`) — upload a file (streamed to R2) or paste a URL,
   preview live, then `POST /__dev/media` to write `media.{src,alt,poster}`.
 
@@ -405,6 +430,11 @@ and the widget initialised **on first enter** (once) — not on page load. An em
 - **Base vs. per-fold.** Anything shared (header, fold framework, tokens, reset)
   lives in `base.css`. Fold-specific styling lives in `css/folds/<fold>.css` and
   is namespaced with a `.<fold>__…` BEM-ish prefix.
+- **Responsive.** `base.css` collapses the nav to a hamburger overlay at `≤768px`;
+  each fold then carries its own mobile layout in a `@media (max-width: 768px)` block
+  inside `css/folds/<fold>.css` (columns stack, headings pin bottom-right, Contact
+  scrolls). Dev-tool-authored block positioning stays out in the `<fold>.layout.css`
+  (desktop) / `<fold>.layout.mobile.css` (mobile) files.
 - **Fonts (placeholders):** display serif **Cormorant Garamond** (wordmark,
   headlines, poem — needs a true italic) and label sans **Jost** (tagline, nav,
   established, About heading). Loaded from Google Fonts.
@@ -427,8 +457,9 @@ the same recipe applies to any future fold (using `services` as the example):
 5. **Lifecycle (only if needed)** — if the fold has active-only behaviour (video,
    autoplay, animation), call `window.MemoryParlour.registerFold(...)`.
 6. **Dev tooling (optional)** — to get the `?dev` editor / picker / layout / media
-   panels on the new fold: link `css/folds/services.overrides.css` and
-   `css/folds/services.layout.css` in `index.html`, add a server-side `FOLDS.services`
+   panels on the new fold: link `css/folds/services.overrides.css`,
+   `css/folds/services.layout.css`, and `css/folds/services.layout.mobile.css` in
+   `index.html`, add a server-side `FOLDS.services`
    entry (validator + selector whitelists) in `server/dev-server.js`, write
    `js/dev/dev-config.services.js`, and lazy-load the `js/dev/` cores from the
    renderer under `?dev` (copy the block any existing fold renderer uses).
@@ -454,9 +485,15 @@ work automatically. Touch `folds.js` only to extend shared navigation behaviour.
   `contact.json`'s `media.url` is set; the live widget then lazy-loads on first
   enter. Third-party consent/cookie handling for the embed is also out of scope
   for now.
-- **Mobile polish** — current responsive behaviour is sensible defaults only (the
-  `?dev` layout tool is desktop-only; the `mobile` breakpoint is stubbed but not
-  yet wired).
+- **Mobile polish (partly done).** Every fold now has a tuned mobile layout — a
+  hand-written `@media (max-width: 768px)` block in its `css/folds/<fold>.css`
+  (columns stack, headings pin bottom-right, Contact scrolls) — and the `?dev`
+  **mobile layout shell** (above) authors per-fold block positioning at `≤768px`
+  into `<fold>.layout.mobile.css`. Still deferred (see
+  `specdoc/mobile-layout-shell.spec.md` §12): mobile **text / spacing** overrides,
+  the picker / media manager on mobile, and a unified desktop+mobile authoring
+  shell. The in-page layout tool stays desktop-only by design — mobile positioning
+  goes through the shell.
 
 ---
 
