@@ -15,3 +15,8 @@ npm-debug.log*
 
 # Node
 node_modules/
+
+# Secrets / local env — never commit these
+.env
+.env.local
+.env.*.local

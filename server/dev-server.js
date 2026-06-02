@@ -12,6 +12,10 @@ const path = require('path');
 const crypto = require('crypto');
 const r2 = require('./r2'); // hand-rolled SigV4 R2 upload (built-ins only)
 
+// Populate process.env from <root>/.env before anything reads it (e.g. DEV_KEY
+// below, and the lazy R2_* lookups in r2.js). Inline env overrides still win.
+require('./load-env').loadEnv();
+
 const ROOT = path.resolve(__dirname, '..');
 const PORT = process.env.PORT || 8080;
 
