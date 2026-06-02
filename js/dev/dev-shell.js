@@ -25,6 +25,9 @@
   const ORIGIN = location.origin;
   const WIDTHS = [360, 390, 414]; // phone-width presets (px)
   let frameWidth = 390;
+  // Optional deep-link: dev-shell.html?fold=<id> (the layout panel's "Edit mobile
+  // view ↗" button passes the fold you were on) → jump there on the first `ready`.
+  const wantFold = new URLSearchParams(location.search).get('fold') || '';
 
   // Live refs (populated by build()).
   let built = false;
@@ -81,6 +84,8 @@
         populateBlocks(msg.blocks || []);
         setReadout(null);
         setStatus(`Fold: ${currentFold || '—'}`);
+        // Honor the ?fold= deep-link once, on the initial ready (the frame starts on home).
+        if (msg.type === 'ready' && wantFold && wantFold !== currentFold) toAgent('goto', { fold: wantFold });
         break;
       case 'selected':
         currentSel = msg.selector || '';

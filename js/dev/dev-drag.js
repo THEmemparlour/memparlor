@@ -60,4 +60,38 @@
     handle.addEventListener('pointerup', stop);
     handle.addEventListener('pointercancel', stop);
   };
+
+  // Dock a freshly-built dev panel into a NON-OVERLAPPING vertical stack on one
+  // side ('left' | 'right'). Unlike the old hardcoded tops (e.g. media at 334px,
+  // which a taller layout panel would collide with), this measures REAL heights, so
+  // a panel's content size can never cause overlap. Panels are matched by a
+  // `data-dock` marker: each new one stacks below those already placed on that side
+  // this session. Runs once at mount; the panel stays draggable afterward. If the
+  // column overflows the viewport the panel is clamped to stay visible — overlap
+  // happens only then, i.e. "unless there's no space". Call AFTER the panel is in
+  // the DOM (so it can be measured) and before/after makeDraggable (order-agnostic).
+  NS.dockPanel = (panel, side = 'left') => {
+    if (!panel) return;
+    const GAP = 10;   // vertical gap between stacked panels
+    const TOP0 = 92;  // first panel sits just below the header band (matches old anchors)
+    const EDGE = 16;  // viewport margin (matches the panels' own corner offset)
+
+    panel.style.position = 'fixed';
+    panel.style.bottom = 'auto';
+    if (side === 'right') { panel.style.right = `${EDGE}px`; panel.style.left = 'auto'; }
+    else { panel.style.left = `${EDGE}px`; panel.style.right = 'auto'; }
+    panel.dataset.dock = side;
+
+    // Stack below any panels already docked on this side (self excluded).
+    let top = TOP0;
+    for (const p of document.querySelectorAll(`[data-mp-dev][data-dock="${side}"]`)) {
+      if (p === panel) continue;
+      top = Math.max(top, p.getBoundingClientRect().bottom + GAP);
+    }
+    // Keep it on-screen: clamp so the panel's bottom stays in view. This is the only
+    // branch that can overlap the panel above — and only when nothing else fits.
+    const h = panel.offsetHeight || 0;
+    const maxTop = Math.max(TOP0, window.innerHeight - EDGE - h);
+    panel.style.top = `${Math.min(top, maxTop)}px`;
+  };
 })();

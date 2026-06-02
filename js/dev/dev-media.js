@@ -202,6 +202,7 @@
     panel.append(applyBtn, saveBtn);
 
     document.body.appendChild(panel);
+    NS.dockPanel?.(panel, 'left'); // stack below the layout panel (measured height → no overlap)
     NS.makeDraggable?.(panel, title); // drag the panel by its title bar
 
     return {

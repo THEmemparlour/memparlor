@@ -274,8 +274,21 @@
       setTimeout(() => { saveBtn.textContent = 'Save layout'; }, 1400);
     });
 
-    panel.append(title, select, readout, hint, resetBtn, saveBtn);
+    // Jump to the mobile layout shell — opens the phone-frame editor in a new tab,
+    // deep-linked to this fold. Lives here because the shell is the mobile sibling of
+    // this desktop layout tool. Kept visually secondary so it doesn't rival Save.
+    const mobileBtn = mkBtn('Edit mobile view ↗', () => {
+      window.open(`/dev-shell.html?fold=${encodeURIComponent(foldId)}`, '_blank', 'noopener');
+    });
+    mobileBtn.title = 'Open the mobile layout shell in a new tab';
+    Object.assign(mobileBtn.style, {
+      background: 'transparent', borderColor: 'rgba(247,245,231,0.25)',
+      fontSize: '11px', padding: '4px 0', opacity: '0.9',
+    });
+
+    panel.append(title, select, readout, hint, resetBtn, saveBtn, mobileBtn);
     document.body.appendChild(panel);
+    NS.dockPanel?.(panel, 'left'); // own the left-column position (no overlap with the media panel)
     NS.makeDraggable?.(panel, title);
 
     // --- Init ------------------------------------------------------------------
