@@ -61,6 +61,77 @@
 
   const activeFold = () => document.documentElement.dataset.fold;
 
+  // --- Master save: one button + Cmd/Ctrl+S that flushes EVERY pending edit -----
+  // Additive — the per-panel Save buttons stay. It calls each mounted panel's
+  // save() (the active fold's picker/editor/layout/media, plus the persistent nav
+  // editor) SERIALLY: text/crop/media all read-modify-write the same
+  // content/<fold>.json, so parallel saves would clobber each other. Each save()
+  // is dirty-aware (untouched panels return nothing) and reports one row per write.
+  const collectSavers = () => {
+    const list = destroyers.filter((d) => typeof d?.save === 'function');
+    if (NS.navEditorHandle && typeof NS.navEditorHandle.save === 'function') list.push(NS.navEditorHandle);
+    return list;
+  };
+
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.setAttribute('data-mp-dev', '');
+  saveBtn.textContent = 'SAVE ALL';
+  saveBtn.title = 'Save every pending dev edit on this fold + the nav (Cmd/Ctrl+S)';
+  Object.assign(saveBtn.style, {
+    position: 'fixed', left: '50%', bottom: '16px', transform: 'translateX(-50%)', zIndex: '10000',
+    font: '12px/1 ui-monospace, SFMono-Regular, Menlo, monospace', cursor: 'pointer',
+    color: '#14130f', background: '#f7f5e7', border: '1px solid rgba(20,19,16,0.5)',
+    borderRadius: '6px', padding: '8px 16px', letterSpacing: '.1em', fontWeight: '600',
+  });
+
+  let saving = false;
+  async function saveAll() {
+    if (saving || !NS.devUnlocked) return;
+    saving = true;
+    saveBtn.textContent = 'Saving…';
+    const results = [];
+    for (const s of collectSavers()) {
+      try {
+        results.push(...(await s.save()));
+      } catch (err) {
+        console.warn('[dev-controller] save failed', err);
+        results.push({ target: 'unknown', ok: false });
+      }
+    }
+    saving = false;
+    if (!results.length) {
+      saveBtn.textContent = 'Nothing to save';
+    } else {
+      const ok = results.filter((r) => r.ok).length;
+      saveBtn.textContent = ok === results.length ? `Saved ${ok} ✓` : `Saved ${ok}/${results.length} ⚠`;
+      const failed = results.filter((r) => !r.ok).map((r) => r.target);
+      if (failed.length) console.warn('[dev-controller] SAVE ALL — failures:', failed);
+    }
+    setTimeout(() => { saveBtn.textContent = 'SAVE ALL'; }, 1600);
+  }
+  saveBtn.addEventListener('click', saveAll);
+
+  // Cmd/Ctrl+S → master save (only while unlocked; otherwise leave the browser's
+  // own Save shortcut alone).
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+      if (!NS.devUnlocked) return;
+      e.preventDefault();
+      saveAll();
+    }
+  });
+
+  // Show the button only once unlocked; remove it if the session locks (mirrors
+  // the nav toggle's gating). The button lives outside `destroyers`, so a fold
+  // change never tears it down.
+  let btnShown = false;
+  const showSaveBtn = () => { if (!btnShown) { btnShown = true; document.body.appendChild(saveBtn); } };
+  const hideSaveBtn = () => { if (btnShown) { saveBtn.remove(); btnShown = false; } };
+  if (NS.devUnlocked) showSaveBtn();
+  document.addEventListener('dev:unlocked', showSaveBtn);
+  document.addEventListener('dev:locked', hideSaveBtn);
+
   // Post-load navigation: the target fold was pre-rendered at load, so its DOM
   // already exists when we rebuild.
   document.addEventListener('fold:change', (e) => mount(e.detail.fold));

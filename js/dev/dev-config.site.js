@@ -27,13 +27,22 @@
     editor: {
       rootSelector: 'site-nav',
       selectSelectors: '.logo__tagline, .logo__wordmark, .logo__est, .site-nav__link',
-      classFor: {
-        'logo__tagline': '.logo__tagline',
-        'logo__wordmark': '.logo__wordmark',
-        'logo__est': '.logo__est',
-        'site-nav__link': '.site-nav__link',
+      // Map a clicked element → the CSS rule the inspector edits. The ACTIVE nav
+      // link is styled by a higher-specificity base rule (.site-nav__link.is-active),
+      // so editing the shared .site-nav__link can't touch its color/weight; target
+      // .site-nav__link.is-active when the active link is clicked (it follows
+      // whichever fold is active, so the style carries across pages), and the plain
+      // base rule for any non-active link. Logo parts map to themselves.
+      selectorFor(el) {
+        if (el.classList.contains('site-nav__link')) {
+          return el.classList.contains('is-active') ? '.site-nav__link.is-active' : '.site-nav__link';
+        }
+        if (el.classList.contains('logo__tagline')) return '.logo__tagline';
+        if (el.classList.contains('logo__wordmark')) return '.logo__wordmark';
+        if (el.classList.contains('logo__est')) return '.logo__est';
+        return null;
       },
-      cssSelectors: ['.logo__tagline', '.logo__wordmark', '.logo__est', '.site-nav__link'],
+      cssSelectors: ['.logo__tagline', '.logo__wordmark', '.logo__est', '.site-nav__link', '.site-nav__link.is-active'],
       liveStyleId: 'site-dev-overrides',
       captureClicks: true, // intercept nav clicks before <site-nav>'s own navigate handler
       panelStyle: { left: '16px', right: 'auto' }, // dock left, clear of the fold editor panel
@@ -84,6 +93,7 @@
       if (!NS.buildEditor) return; // core not ready yet
       handle = NS.buildEditor(configs.site);
       if (!handle) return; // <site-nav> not in the DOM
+      NS.navEditorHandle = handle; // expose save() for the dev-controller SAVE ALL button
     }
     on = !on;
     handle.setActive(on);

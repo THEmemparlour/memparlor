@@ -22,6 +22,25 @@
   const NS = (window.MemoryParlour = window.MemoryParlour || {});
   if (NS.buildEditor) return; // define the builder once (every fold re-injects this core)
 
+  // Re-fetch a saved dev stylesheet so the running SPA reflects it. index.html's
+  // override/layout <link>s are fetched once at page load; after a Save the file on
+  // disk changes but the loaded sheet doesn't, and the live-preview <style> is
+  // removed on fold-leave — so without this a fold shows its page-load CSS until a
+  // full reload (while the deployed site, a fresh load, shows the save). Bumping a
+  // ?v= query forces a fresh fetch; the dev server ignores the query when resolving
+  // the file. Shared by the CSS editor + the layout tool.
+  NS.reloadDevStylesheet = NS.reloadDevStylesheet || ((href) => {
+    const want = new URL(href, location.href).pathname;
+    for (const link of document.querySelectorAll('link[rel="stylesheet"]')) {
+      if (new URL(link.href, location.href).pathname !== want) continue;
+      const u = new URL(link.href, location.href);
+      u.searchParams.set('v', String(Date.now()));
+      link.href = u.href;
+      return true;
+    }
+    return false;
+  });
+
   // Build the editor for a fold's config; returns { destroy } for teardown, or
   // null when the fold has no editor config or its root isn't in the DOM.
   NS.buildEditor = (cfg) => {
@@ -324,7 +343,11 @@
       });
 
     const saveText = mkSave('Save text', () => post('/__dev/content', ed.scrape()));
-    const saveCss = mkSave('Save CSS', () => post('/__dev/css', { fold: foldId, overrides }));
+    const saveCss = mkSave('Save CSS', async () => {
+      const res = await post('/__dev/css', { fold: foldId, overrides });
+      if (res.ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.overrides.css`); // reflect the save in-session
+      return res;
+    });
 
     panel.append(title, readout, structureBox, inspectorBox, saveText, saveCss);
     document.body.appendChild(panel);
@@ -336,6 +359,22 @@
     // the panel, the delegated listeners, and the selection outline.
     return {
       panel,
+      // Master-save hook (the dev-controller SAVE ALL button / Cmd-Ctrl+S):
+      // persist this fold's text always (idempotent — identical bytes if nothing
+      // changed), and CSS only when something was edited. Saving an empty overrides
+      // set would blank the saved overrides file, so skip it when nothing's dirty.
+      async save() {
+        if (editingEl) editingEl.blur(); // commit any in-progress inline edit first
+        const out = [];
+        const text = await post('/__dev/content', ed.scrape());
+        out.push({ target: `${foldId} · text`, ok: text.ok });
+        if (Object.keys(overrides).length) {
+          const css = await post('/__dev/css', { fold: foldId, overrides });
+          if (css.ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.overrides.css`); // reflect the save in-session
+          out.push({ target: `${foldId} · css`, ok: css.ok });
+        }
+        return out;
+      },
       // Show/hide + gate the editor without tearing it down (used by the nav
       // toggle); keeps unsaved edits + CSS overrides while the panel is hidden.
       setActive(v) {

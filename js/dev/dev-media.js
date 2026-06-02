@@ -34,12 +34,13 @@
     }
 
     const devKey = () => NS.devAuth?.key?.() || '';
+    let dirty = false; // true once a field changes or an upload completes; gates master save
 
     // --- Panel scaffolding (mirrors the other dev cores) -----------------------
     const panel = document.createElement('div');
     panel.setAttribute('data-mp-dev', '');
     Object.assign(panel.style, {
-      position: 'fixed', top: '92px', left: '16px', zIndex: '9999', width: '244px',
+      position: 'fixed', top: '334px', left: '16px', zIndex: '9999', width: '244px',
       font: '12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace',
       background: 'rgba(20,19,16,0.92)', color: '#f7f5e7', padding: '10px',
       borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', userSelect: 'none',
@@ -106,6 +107,7 @@
           }
           const { url } = await res.json();
           onUrl(url);
+          dirty = true;
           setStatus('Uploaded ✓ — Apply to preview, then Save');
         } catch {
           setStatus('Upload failed (network)');
@@ -131,6 +133,12 @@
       posterUpload = mkUpload('Upload poster', 'image/*', (url) => { posterField.input.value = url; });
     } else {
       altField = mkField('Alt text', el.getAttribute('alt') || '');
+    }
+
+    // Manual typing into any field is a pending change too (uploads set `dirty`
+    // in mkUpload, since assigning input.value programmatically doesn't fire 'input').
+    for (const f of [srcField, altField, posterField]) {
+      if (f) f.input.addEventListener('input', () => { dirty = true; });
     }
 
     // --- Apply live (no re-render: swap attributes on the existing element) -----
@@ -197,6 +205,30 @@
     NS.makeDraggable?.(panel, title); // drag the panel by its title bar
 
     return {
+      // Master-save hook: persist media.{src,alt?|poster?} (same payload as the
+      // Save media button), but only if a field changed or a file was uploaded —
+      // and never with an empty src (which the server rejects anyway).
+      async save() {
+        if (!dirty) return [];
+        const src = srcField.input.value.trim();
+        if (!src) return [{ target: `${foldId} · media`, ok: false }];
+        const payload = { fold: foldId, src };
+        if (isVideo) {
+          if (posterField && posterField.input.value.trim()) payload.poster = posterField.input.value.trim();
+        } else if (altField) {
+          payload.alt = altField.input.value;
+        }
+        let ok = false;
+        try {
+          const res = await fetch('/__dev/media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Dev-Key': devKey() },
+            body: JSON.stringify(payload),
+          });
+          ok = res.ok;
+        } catch { ok = false; }
+        return [{ target: `${foldId} · media`, ok }];
+      },
       destroy() {
         panel.remove();
       },

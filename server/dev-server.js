@@ -272,7 +272,9 @@ const FOLDS = {
   },
   // The shared nav/header (not a fold). content/site.json + css/folds/site.overrides.css.
   site: {
-    cssSelectors: ['.logo__tagline', '.logo__wordmark', '.logo__est', '.site-nav__link'],
+    // .site-nav__link.is-active = the active link's higher-specificity state; the
+    // nav editor targets it when the active link is selected (see dev-config.site.js).
+    cssSelectors: ['.logo__tagline', '.logo__wordmark', '.logo__est', '.site-nav__link', '.site-nav__link.is-active'],
     validateContent: validateSiteContent,
   },
 };
