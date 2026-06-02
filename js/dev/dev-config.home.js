@@ -46,6 +46,7 @@
       mode: 'transform', // movable backdrop — translate + scale, base may show
       minZoom: 0.2,
     },
+    media: { selector: '[data-home-media] .home__media-el', kind: 'image' },
     editor: {
       rootSelector: '[data-home-root]',
       selectSelectors: '.home__seg, .home__headline',

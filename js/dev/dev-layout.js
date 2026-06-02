@@ -48,6 +48,7 @@
     // State: { desktop: { '<selector>': { left, top, width } } } — values like '12.3%'.
     const layout = { [BP]: {} };
     let curSel = '';
+    let dirty = false; // true after a move/resize/reset; gates master save (seeding doesn't count)
 
     // Geometry of a block as % of its offsetParent — from the stored value if any,
     // else measured from its current on-screen rect (which includes any transform).
@@ -67,6 +68,7 @@
     };
     const store = (sel, m) => {
       layout[BP][sel] = { left: pct(m.left), top: pct(m.top), width: pct(m.width) };
+      dirty = true;
     };
 
     // --- Pre-seed from any already-saved rules ---------------------------------
@@ -253,6 +255,7 @@
     const resetBtn = mkBtn('Reset block', () => {
       if (!curSel) return;
       delete layout[BP][curSel]; // back to normal flow; Save then drops its rule
+      dirty = true;
       refresh();
     });
     const saveBtn = mkBtn('Save layout', async () => {
@@ -263,6 +266,7 @@
           headers: { 'Content-Type': 'application/json', 'X-Dev-Key': NS.devAuth?.key?.() || '' },
           body: JSON.stringify({ fold: foldId, layout }),
         });
+        if (res.ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.layout.css`); // reflect the save in-session
         saveBtn.textContent = res.ok ? 'Saved ✓' : 'Save failed';
       } catch {
         saveBtn.textContent = 'Save failed';
@@ -279,6 +283,23 @@
     renderLive();
 
     return {
+      // Master-save hook: write the layout map (same as the Save button), but only
+      // if a block was moved/resized/reset this session — seeding from the saved
+      // file isn't an edit, so an untouched fold won't rewrite its layout.css.
+      async save() {
+        if (!dirty) return [];
+        let ok = false;
+        try {
+          const res = await fetch('/__dev/layout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Dev-Key': NS.devAuth?.key?.() || '' },
+            body: JSON.stringify({ fold: foldId, layout }),
+          });
+          ok = res.ok;
+          if (ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.layout.css`); // reflect the save in-session
+        } catch { ok = false; }
+        return [{ target: `${foldId} · layout`, ok }];
+      },
       destroy() {
         window.removeEventListener('scroll', onScroll, true);
         panel.remove();

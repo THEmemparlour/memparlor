@@ -62,6 +62,7 @@
     let posX;
     let posY;
     let zoom = parseZoom(img.style.transform);
+    let dirty = false; // true after any user adjust (drag / D-pad / arrows / zoom); gates master save
     if (mode === 'object') {
       [posX, posY] = parsePos(img.style.objectPosition || getComputedStyle(img).objectPosition);
     } else {
@@ -174,6 +175,7 @@
       }
       zoomVal.textContent = `×${zoom.toFixed(2)}`;
       readout.textContent = snippet();
+      dirty = true;
     }
 
     // --- Drag ------------------------------------------------------------------
@@ -212,11 +214,32 @@
     window.addEventListener('keydown', onWinKeyDown);
 
     apply();
+    dirty = false; // the initial apply() seeds from the element — not a user edit
 
     // Teardown: remove the panel + every listener this build added, and reset the
     // image's dev-only cursor. The crop transform/objectPosition are left in place
     // (that's the live crop being authored, possibly saved).
     return {
+      // Master-save hook: same payload as the Save button, but only when the dev
+      // actually moved/zoomed — otherwise we'd write an identity crop into folds
+      // that never had one.
+      async save() {
+        if (!dirty) return [];
+        let ok = false;
+        try {
+          const res = await fetch('/__dev/crop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Dev-Key': NS.devAuth?.key?.() || '' },
+            body: JSON.stringify({
+              fold: foldId,
+              position: `${round(posX)}% ${round(posY)}%`,
+              zoom: Number(zoom.toFixed(3)),
+            }),
+          });
+          ok = res.ok;
+        } catch { ok = false; }
+        return [{ target: `${foldId} · crop`, ok }];
+      },
       destroy() {
         panel.remove();
         window.removeEventListener('keydown', onWinKeyDown);

@@ -29,6 +29,8 @@
     "autoplay": true,
     "loop": true,
     "muted": true,
-    "showMuteControl": false
+    "showMuteControl": false,
+    "position": "51% 77%",
+    "zoom": 1
   }
 }

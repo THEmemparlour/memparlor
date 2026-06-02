@@ -61,7 +61,7 @@
   font-size: clamp(0.95rem, 1.4vw, 1.2rem);
   line-height: 1.5;
   letter-spacing: 0.01em;
-  max-width: 48ch;
+  /* Full column width to match the <h2> labels (intentionally no measure cap). */
   color: var(--color-ink);
 }
 

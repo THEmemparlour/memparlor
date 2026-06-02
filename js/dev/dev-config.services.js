@@ -59,6 +59,7 @@
       mode: 'object', // focal crop — always fills the box, no gaps (like FAQ/About)
       minZoom: 1, // never below cover
     },
+    media: { selector: '[data-services-media] .services__media-el', kind: 'image' },
     editor: {
       rootSelector: '[data-services-root]',
       selectSelectors: '.services__eyebrow, .services__title, [data-services-body] h2, [data-services-body] p',

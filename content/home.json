@@ -32,7 +32,7 @@
     "type": "image",
     "src": "/assets/images/hero-home-placeholder.jpg",
     "alt": "Two figures standing at the edge of a lake",
-    "position": "50% 63%",
-    "zoom": 0.75
+    "position": "30% 50%",
+    "zoom": 0.6
   }
 }

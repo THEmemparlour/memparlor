@@ -63,6 +63,28 @@ and falls back to `index.html` for clean routes (e.g. `/about-us`) so deep links
 work. It mirrors what the future Worker/SSR layer will do; it is not a production
 server.
 
+**Media upload to Cloudflare R2 (local authoring).** Production media lives on
+Cloudflare R2 and each fold's `content/<fold>.json` stores the **public
+custom-domain URL** in `media.src`. The `?dev` media panel uploads a file through
+the local dev server, which signs an S3-compatible PUT to R2 (hand-rolled SigV4,
+Node built-ins only — see `server/r2.js`) and writes the returned URL back into the
+fold JSON; you then commit + push and Workers Builds deploys. A URL can also be
+pasted directly. This is **local-only**: the credentials live in env vars (never
+committed) and there is no upload endpoint on the deployed site. Set all five to
+enable `POST /__dev/upload` (the server warns and 503s the endpoint otherwise):
+
+```bash
+MP_DEV_KEY=your-passphrase \
+R2_ACCOUNT_ID=… R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… \
+R2_BUCKET=… R2_PUBLIC_BASE_URL=https://media.example.com \
+npm run dev
+# R2_MAX_UPLOAD_MB (default 50) caps the upload size.
+```
+
+`npm run test:r2` checks the SigV4 signing math against AWS's published test
+vector (offline, no creds); with the `R2_*` vars set it also runs a live PUT +
+public-fetch smoke test.
+
 ---
 
 ## Project structure

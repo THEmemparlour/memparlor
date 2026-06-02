@@ -28,6 +28,7 @@
       mode: 'object', // focal crop — always fills the window, no gaps (like FAQ)
       minZoom: 1, // never below cover
     },
+    media: { selector: '[data-about-media] .about__media-el', kind: 'video' },
     editor: {
       rootSelector: '[data-about-root]',
       selectSelectors: '.about__eyebrow, .about__title, .about__poem-line',
