@@ -8,12 +8,12 @@
 .faqs {
   display: grid;
   grid-template-columns: clamp(260px, 34vw, 520px) 1fr;
-  /* Pin the single row to the fold height (minmax floor 0, not auto) so a long
-     Q&A list scrolls *inside* the main column instead of growing it past 100vh
-     and dragging the bottom-pinned heading off-screen with it. */
-  grid-template-rows: minmax(0, 1fr);
+  /* One row that fills the viewport when the Q&A is short and grows past it when
+     the list is long (the page scrolls). The left image and the bottom-right
+     heading track that row height. */
+  grid-template-rows: 1fr;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
 }
 
 /* --- Left: full-height image column (bleeds to left/top/bottom edges) --- */
@@ -35,7 +35,6 @@
 /* --- Right: centered Q&A list + bottom-right heading share this region --- */
 .faqs__main {
   position: relative;
-  min-height: 0; /* let this grid cell shrink so the list's overflow scrolls, not the page */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -48,21 +47,8 @@
 .faqs__list {
   width: 100%;
   max-width: 34rem;
-  /* Scroll the list itself once it's taller than the available band (the heading
-     stays put). min-height:0 lets the flex item shrink below its content size. */
-  min-height: 0;
-  max-height: 100%;
-  overflow-y: auto;
+  /* Flows with the page (no internal scroll); a long list grows the FAQs row. */
   padding-right: clamp(8px, 1.5vw, 24px);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-ink-hairline) transparent;
-}
-
-.faqs__list::-webkit-scrollbar { width: 6px; }
-.faqs__list::-webkit-scrollbar-thumb {
-  background: var(--color-ink-hairline);
-  border-radius: 3px;
 }
 
 .faqs__item + .faqs__item {

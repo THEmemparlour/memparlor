@@ -1,7 +1,7 @@
 /* ==========================================================================
    Memory Parlour — base.css
-   Design tokens, reset, font setup, header (<site-nav>), the fold layout +
-   crossfade framework, and shared layout primitives.
+   Design tokens, reset, font setup, header (<site-nav>), the fold layout
+   framework, and shared layout primitives.
    All token values are PLACEHOLDERS — exact values land in the design-system pass.
    ========================================================================== */
 
@@ -19,7 +19,6 @@
   /* --- Layout --- */
   --header-h:     clamp(64px, 9vh, 96px);
   --page-gutter:  clamp(20px, 5vw, 72px);
-  --fold-fade:    700ms;
 }
 
 /* --- Reset --- */
@@ -31,14 +30,19 @@ html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+}
+
+html {
+  /* Native scroll: nav clicks + deep links smooth-scroll between sections;
+     scroll-padding-top keeps a section's top clear of the fixed header. */
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--header-h);
 }
 
 body {
-  /* Single page, one viewport tall — there is no normal page scroll. */
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
+  /* One continuous page: the six folds stack vertically and the page scrolls. */
+  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-label);
@@ -73,7 +77,10 @@ site-nav {
   justify-content: space-between;
   gap: var(--page-gutter);
   padding: clamp(18px, 3.2vh, 34px) var(--page-gutter);
-  pointer-events: none; /* let folds receive wheel/touch; re-enable on interactive bits */
+  /* Opaque bar matching the page background, so content scrolls behind it
+     rather than showing through. */
+  background: var(--color-bg);
+  pointer-events: none; /* clicks fall through to the page; links/buttons re-enable below */
 }
 
 site-nav a,
@@ -178,34 +185,22 @@ site-nav button { pointer-events: auto; }
 .site-nav__toggle span:nth-child(3) { top: 18px; }
 
 /* ==========================================================================
-   Fold layout + crossfade framework
-   Six full-viewport folds layered on top of each other; only the active one
-   is visible. Navigation crossfades between them.
+   Fold layout framework
+   Six sections stacked vertically in normal flow; each is at least one viewport
+   tall and grows with its content. The page scrolls natively between them and a
+   scroll-spy (js/folds.js) names the active fold.
    ========================================================================== */
 
 .folds {
-  position: fixed;
-  inset: 0;
+  /* Normal-flow container; the page (not this element) scrolls. */
+  position: relative;
 }
 
 .fold {
-  position: absolute;
-  inset: 0;
+  position: relative; /* containing block for each fold's own absolute children */
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity var(--fold-fade) ease, visibility 0s linear var(--fold-fade);
-}
-
-.fold.is-active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transition: opacity var(--fold-fade) ease, visibility 0s;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ==========================================================================
@@ -250,8 +245,6 @@ site-nav button { pointer-events: auto; }
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
-  .fold,
-  .fold.is-active { transition: none; }
+  html { scroll-behavior: auto; }
   .site-nav__list { transition: none; }
-  * { scroll-behavior: auto; }
 }

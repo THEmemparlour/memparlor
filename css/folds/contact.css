@@ -8,8 +8,11 @@
 .contact {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  /* One row that fills the viewport (text centred, embed filling height) and
+     grows if content ever exceeds it; the page scrolls. */
+  grid-template-rows: 1fr;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
 }
 
 /* --- Left: lede + body --- */
@@ -110,7 +113,6 @@
   .contact {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    overflow-y: auto;
   }
 
   .contact__text {
