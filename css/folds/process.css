@@ -9,9 +9,11 @@
 .process {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   /* Clear the fixed header; cream gutters L/R match the rest of the site. */
-  padding: calc(var(--header-h) + clamp(14px, 3vh, 30px)) var(--page-gutter) 0;
+  padding: calc(var(--header-h) + clamp(14px, 3vh, 30px))
+           var(--page-gutter)
+           clamp(22px, 4.5vh, 48px);
   background: var(--color-bg);
 }
 
@@ -113,16 +115,14 @@
   color: var(--color-ink);
 }
 
-/* --- Lower area: video band, bleeding off the bottom -----------------------
-   Anchored by its top with cream gutters L/R; its height runs past the fold's
-   bottom edge and is cropped by the 100vh fold boundary (overflow:hidden on
-   .fold). Same language as the Home hero image. */
+/* --- Lower area: video band ------------------------------------------------
+   An in-flow band beneath the text, inset L/R by the section's gutter padding.
+   Fixed band height crops the cover video; it no longer bleeds off a viewport
+   edge now that the page scrolls. */
 .process__video {
-  position: absolute;
-  left: var(--page-gutter);
-  right: var(--page-gutter);
-  top: clamp(52%, 56vh, 58%);
-  height: 60vh; /* extends past the bottom edge → bleeds, then crops */
+  position: relative;
+  margin-top: clamp(24px, 4vh, 48px);
+  height: clamp(320px, 56vh, 680px);
   overflow: hidden;
 }
 
@@ -177,8 +177,8 @@
     z-index: 2;
   }
 
-  /* Pin the heading to the fold's bottom-right corner (over the bleeding video
-     band) rather than dropping it to the top-left. */
+  /* Pin the heading to the fold's bottom-right corner (over the video band)
+     rather than dropping it to the top-left. */
   .process__heading {
     position: absolute;
     right: clamp(16px, 5vw, 28px);
@@ -186,11 +186,5 @@
     margin: 0;
     text-align: right;
     z-index: 3;
-  }
-
-  .process__video {
-    left: clamp(12px, 4vw, 24px);
-    right: clamp(12px, 4vw, 24px);
-    top: 58%;
   }
 }

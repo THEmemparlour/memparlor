@@ -11,7 +11,8 @@
 
    Production has no /__dev/* server, so validate() returns 'no-server' and we stay
    silently locked (no prompt, no panels). A wrong/cancelled phrase dispatches
-   `dev:locked` so folds.js restores normal navigation.
+   `dev:locked`, which tears down the dev UI (controller's SAVE ALL button, the
+   nav toggle, the shell panel).
    ========================================================================== */
 
 (() => {

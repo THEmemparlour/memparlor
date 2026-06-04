@@ -8,7 +8,7 @@
 .about {
   position: relative; /* positioning context for the mobile bottom-right heading */
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   /* Clear the fixed header at the top; cream gutters L/R match the Home image. */
@@ -64,13 +64,11 @@
 .about__mute.is-muted::before { content: "\1F507"; /* 🔇 */ }
 
 /* --- Bottom band: poem (left) | heading (right) ----------------------------
-   Fills the space below the video and bottom-aligns its content, so the cream gap
-   sits above it. flex:1 + min-height:0 bound it to that space (rather than sizing
-   to the poem), so a long poem scrolls *inside* the poem column instead of growing
-   the band past the fold and shoving the video/heading around. */
+   Sits below the video and grows with its content (the whole page scrolls).
+   flex:1 1 auto lets it fill the remaining viewport space when the poem is short,
+   and grow the section when it's long. */
 .about__bottom {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -78,23 +76,11 @@
   padding-top: clamp(20px, 4vh, 44px);
 }
 
-/* Poem — italic serif, left-aligned, exact line breaks preserved. Scrolls itself
-   once it's taller than the band (the heading stays pinned bottom-right). */
+/* Poem — italic serif, left-aligned, exact line breaks preserved. Flows with the
+   page (no internal scroll); a long poem grows the About section. */
 .about__poem {
   max-width: 52ch;
-  min-height: 0;
-  max-height: 100%;
-  overflow-y: auto;
   padding-right: clamp(8px, 1.5vw, 24px);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-ink-hairline) transparent;
-}
-
-.about__poem::-webkit-scrollbar { width: 6px; }
-.about__poem::-webkit-scrollbar-thumb {
-  background: var(--color-ink-hairline);
-  border-radius: 3px;
 }
 
 .about__poem-line {
