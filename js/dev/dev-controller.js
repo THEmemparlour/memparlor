@@ -32,23 +32,32 @@
   };
 
   // --- Mobile preview shell (?dev&shell) ------------------------------------
-  // Mount the iframe-side agent INSTEAD of the in-page panels (and suppress SAVE
-  // ALL below — the shell parent owns saving). The picker/editor/layout/media cores
-  // still load but stay idle: we simply never call their builders in shell mode.
+  // Mount the iframe-side agents (layout drag + text/style edit) INSTEAD of the
+  // in-page panels (and suppress SAVE ALL below — the shell parent owns saving). The
+  // picker/editor/layout/media cores still load but stay idle: we simply never call
+  // their builders in shell mode.
   const SHELL = new URLSearchParams(location.search).has('shell');
-  let agentMounted = false;
-  const mountAgent = () => {
-    if (agentMounted) return;
-    agentMounted = true;
-    // The agent is a singleton that self-manages fold changes (so the parent
-    // postMessage channel survives crossfades) — build it exactly once. Inject the
-    // core on demand; the renderers' _devLoaded lists stay unchanged.
-    if (NS.buildAgent) { NS.buildAgent(); return; }
-    const s = document.createElement('script');
-    s.src = '/js/dev/dev-agent.js';
-    s.async = false;
-    s.onload = () => NS.buildAgent?.();
-    document.body.appendChild(s);
+  // Inject a dev-agent core on demand (the renderers' _devLoaded lists stay
+  // unchanged) and build it once. Both agents are singletons that self-manage fold
+  // changes, so the parent postMessage channel survives crossfades.
+  const mountOnce = (() => {
+    const done = new Set();
+    return (src, build) => {
+      if (done.has(src)) return;
+      done.add(src);
+      if (NS[build]) { NS[build](); return; }
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      s.onload = () => NS[build]?.();
+      document.body.appendChild(s);
+    };
+  })();
+  // Layout drag agent (dev-agent.js) + text/style edit agent (dev-agent-edit.js).
+  // Both mount in shell mode; a parent `mode` message flips which one owns clicks.
+  const mountAgents = () => {
+    mountOnce('/js/dev/dev-agent.js', 'buildAgent');
+    mountOnce('/js/dev/dev-agent-edit.js', 'buildEditAgent');
   };
 
   // Build the panels for `fold` (picker if it has an image, editor if it has an
@@ -56,7 +65,7 @@
   // first otherwise. Builders return null when their target DOM isn't ready.
   const mount = (fold) => {
     if (!NS.devUnlocked) return; // gated by the passphrase (see dev-auth.js)
-    if (SHELL) return mountAgent(); // shell mode: the agent replaces the in-page panels
+    if (SHELL) return mountAgents(); // shell mode: the agents replace the in-page panels
     if (!fold || fold === mountedFold) return;
     const cfg = NS.devConfigs && NS.devConfigs[fold];
     if (!cfg) return; // config not registered yet — a later trigger will retry
