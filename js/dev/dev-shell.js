@@ -1,19 +1,26 @@
 /* ==========================================================================
-   Dev-only MOBILE layout preview shell — PARENT page (loaded ONLY by
+   Dev-only MOBILE authoring preview shell — PARENT page (loaded ONLY by
    dev-shell.html; never linked from the live site). Hosts the live site in a
-   phone-width <iframe> and drives the in-frame dev-agent.js over postMessage.
+   phone-width <iframe> and drives the in-frame agents over postMessage.
 
-   Why a parent page: an <iframe> carries its OWN viewport, so a 390px-wide frame
-   makes the real @media (max-width:768px) cascade fire inside it — we author the
-   TRUE mobile layout. The drag affordances live in the frame (the agent); the
-   controls (this panel) live out here in the desktop space beside the phone, so
-   they never crowd the ~390px canvas.
+   Two tools, switched by the MODE toggle, both authoring the TRUE mobile render
+   (the iframe carries its own ≤768px viewport, so the real @media cascade fires):
+     · Layout      — drag blocks to position/size them (dev-agent.js).
+     · Text & Style — click text to edit the words + inline structure, and set
+                      mobile-only text styling (dev-agent-edit.js).
+   The drag/selection affordances live in the frame (the agents); the controls
+   (this panel) live out here beside the phone, so they never crowd the ~390px canvas.
+   A `mode` message flips which agent owns clicks; the default is Layout.
+
+   Saving: "Save mobile layout" → <fold>.layout.mobile.css; "Save mobile style" →
+   <fold>.overrides.mobile.css (both ≤768px, disjoint from their desktop siblings).
+   "Save text" writes content/<fold>.json, which is SHARED with desktop (content has
+   no per-breakpoint concept) — the button says so.
 
    Auth: dev-auth.js (loaded first by the HTML) runs the passphrase flow once here.
    On success the key is in sessionStorage, which the same-origin iframe inherits —
-   so the frame unlocks silently. We build the frame + panel only AFTER unlock (so
-   the key is stored before the frame's own auth runs); on lock / no-server
-   (production) we stay inert with a short notice.
+   so the frame unlocks silently. We build the frame + panel only AFTER unlock; on
+   lock / no-server (production) we stay inert with a short notice.
    ========================================================================== */
 
 (() => {
@@ -29,15 +36,39 @@
   // view ↗" button passes the fold you were on) → jump there on the first `ready`.
   const wantFold = new URLSearchParams(location.search).get('fold') || '';
 
+  // CSS inspector fields — MUST match dev-editor.js's CSS_FIELDS + dev-agent-edit.js's
+  // CSS_PROPS + the server whitelist. The agent computes the values; we only render.
+  const CSS_FIELDS = [
+    { prop: 'font-size', type: 'text' },
+    { prop: 'font-weight', type: 'select', options: ['', 'normal', '300', '400', '500', '600', '700', 'bold'] },
+    { prop: 'font-style', type: 'select', options: ['', 'normal', 'italic', 'oblique'] },
+    { prop: 'color', type: 'text' },
+    { prop: 'line-height', type: 'text' },
+    { prop: 'letter-spacing', type: 'text' },
+    { prop: 'text-align', type: 'select', options: ['', 'left', 'center', 'right', 'justify'] },
+    { prop: 'margin', type: 'text' },
+  ];
+
   // Live refs (populated by build()).
   let built = false;
   let iframe = null;
-  let blockSelect = null;
-  let readoutEl = null;
-  let statusEl = null;
+  let mode = 'layout';
   let currentFold = '';
   let currentSel = '';
+  let editorAvailable = false;
   const foldButtons = new Map(); // fold → button
+  const modeButtons = new Map(); // mode → button
+  const inspectorInputs = new Map(); // prop → input/select
+  // Section + readout/status elements.
+  let blockSelect = null;
+  let readoutEl = null;       // layout block readout
+  let statusEl = null;        // shared status line
+  let layoutSection = null;
+  let editorSection = null;
+  let editorControls = null;
+  let editorEmpty = null;
+  let editorReadoutEl = null; // selected text selector
+  let structureBox = null;
 
   const frameWin = () => (iframe ? iframe.contentWindow : null);
   const toAgent = (type, payload = {}) => {
@@ -69,13 +100,63 @@
     blockSelect.value = currentSel && blocks.includes(currentSel) ? currentSel : '';
   };
 
-  // --- postMessage host: agent → parent (spec §6) --------------------------
-  // Attached at module load (before the frame exists), so the agent's first `ready`
-  // is never missed. Origin- and source-checked.
+  // --- Editor (Text & Style) UI helpers ------------------------------------
+  const setEditorReadout = (text) => { if (editorReadoutEl) editorReadoutEl.textContent = text; };
+  // Fill the inspector inputs from the agent's per-field { value, placeholder }.
+  const populateInspector = (values) => {
+    for (const { prop } of CSS_FIELDS) {
+      const input = inspectorInputs.get(prop);
+      if (!input) continue;
+      const entry = values && values[prop];
+      input.value = entry ? (entry.value || '') : '';
+      if (input.tagName === 'INPUT') input.placeholder = entry ? (entry.placeholder || '') : '';
+    }
+  };
+  // Rebuild the structure-button UI from the agent's posted specs. Each button posts
+  // ed:action {id}; the agent invokes the matching (in-frame) callback.
+  const renderStructure = (groups) => {
+    if (!structureBox) return;
+    structureBox.textContent = '';
+    for (const g of (groups || [])) {
+      const wrap = el('div', 'shell-struct-group');
+      if (g.title) wrap.appendChild(el('div', 'shell-struct-title', g.title));
+      const row = el('div', 'shell-struct-row');
+      for (const b of g.buttons) {
+        const btn = button(b.label, () => toAgent('ed:action', { id: b.id }));
+        if (b.title) btn.title = b.title;
+        row.appendChild(btn);
+      }
+      wrap.appendChild(row);
+      structureBox.appendChild(wrap);
+    }
+  };
+
+  // Reflect the current mode in the toggle + section visibility.
+  const applyMode = () => {
+    for (const [m, b] of modeButtons) b.classList.toggle('is-active', m === mode);
+    if (layoutSection) layoutSection.classList.toggle('is-hidden', mode !== 'layout');
+    if (editorSection) editorSection.classList.toggle('is-hidden', mode !== 'text');
+    if (mode === 'text') {
+      editorControls.classList.toggle('is-hidden', !editorAvailable);
+      editorEmpty.classList.toggle('is-hidden', editorAvailable);
+    }
+  };
+  const setMode = (m) => {
+    if (mode === m) return;
+    mode = m;
+    toAgent('mode', { mode }); // one post reaches BOTH agents in the frame
+    applyMode();
+  };
+
+  // --- postMessage host: agent → parent ------------------------------------
+  // Attached at module load (before the frame exists), so the agents' first messages
+  // are never missed. Origin- and source-checked. Both agents share one
+  // iframe.contentWindow, so this single guard covers layout + edit messages.
   window.addEventListener('message', (e) => {
     if (e.origin !== ORIGIN || !iframe || e.source !== iframe.contentWindow) return;
     const msg = e.data || {};
     switch (msg.type) {
+      // --- Layout agent ---
       case 'ready':
       case 'fold':
         currentFold = msg.fold || '';
@@ -97,6 +178,26 @@
         break;
       case 'saved':
         setStatus(msg.ok ? 'Saved ✓' : 'Save failed');
+        break;
+      // --- Edit agent (Text & Style) ---
+      case 'ed:fold':
+        editorAvailable = !!msg.hasEditor;
+        setEditorReadout('click text in the phone to select · dbl-click to edit');
+        populateInspector(null);
+        renderStructure([]);
+        applyMode();
+        break;
+      case 'ed:buttons':
+        renderStructure(msg.groups);
+        break;
+      case 'ed:values':
+        populateInspector(msg.values);
+        break;
+      case 'ed:readout':
+        setEditorReadout(msg.selector ? `selected: ${msg.selector}` : 'click text in the phone to select');
+        break;
+      case 'ed:save-result':
+        setStatus(`${msg.target === 'text' ? 'Text' : 'Mobile style'} ${msg.ok ? 'saved ✓' : 'save failed'}`);
         break;
     }
   });
@@ -146,9 +247,19 @@
 
     // Panel: the controls.
     const panel = el('aside', 'shell-panel');
-    panel.appendChild(el('div', 'shell-title', 'MOBILE LAYOUT'));
+    panel.appendChild(el('div', 'shell-title', 'MOBILE AUTHORING'));
 
-    // Width presets.
+    // Mode toggle.
+    const modeRow = el('div', 'shell-row');
+    for (const [m, label] of [['layout', 'Layout'], ['text', 'Text & Style']]) {
+      const b = button(label, () => setMode(m));
+      if (m === mode) b.classList.add('is-active');
+      modeButtons.set(m, b);
+      modeRow.appendChild(b);
+    }
+    panel.appendChild(modeRow);
+
+    // Width presets (shared across modes).
     const widthRow = el('div', 'shell-row');
     widthRow.appendChild(el('span', 'shell-label', 'WIDTH'));
     for (const w of WIDTHS) {
@@ -162,7 +273,7 @@
     }
     panel.appendChild(widthRow);
 
-    // Fold switcher.
+    // Fold switcher (shared across modes).
     panel.appendChild(el('div', 'shell-label', 'FOLD'));
     const foldRow = el('div', 'shell-folds');
     for (const { fold, label } of foldList) {
@@ -173,8 +284,9 @@
     }
     panel.appendChild(foldRow);
 
-    // Block select.
-    panel.appendChild(el('div', 'shell-label', 'BLOCK'));
+    // --- Layout section ----------------------------------------------------
+    layoutSection = el('div', 'shell-section');
+    layoutSection.appendChild(el('div', 'shell-label', 'BLOCK'));
     blockSelect = document.createElement('select');
     blockSelect.className = 'shell-select';
     populateBlocks([]);
@@ -182,36 +294,92 @@
       currentSel = blockSelect.value;
       toAgent('select', { selector: currentSel });
     });
-    panel.appendChild(blockSelect);
+    layoutSection.appendChild(blockSelect);
 
-    // Readout.
     readoutEl = el('div', 'shell-readout');
     setReadout(null);
-    panel.appendChild(readoutEl);
+    layoutSection.appendChild(readoutEl);
 
-    // Actions.
-    const actions = el('div', 'shell-row');
-    actions.appendChild(button('Reset block', () => { if (currentSel) toAgent('reset', { selector: currentSel }); }));
-    const saveBtn = button('Save mobile layout', () => { setStatus('Saving…'); toAgent('save'); });
-    saveBtn.classList.add('shell-save');
-    actions.appendChild(saveBtn);
-    panel.appendChild(actions);
+    const layoutActions = el('div', 'shell-row');
+    layoutActions.appendChild(button('Reset block', () => { if (currentSel) toAgent('reset', { selector: currentSel }); }));
+    const saveLayoutBtn = button('Save mobile layout', () => { setStatus('Saving…'); toAgent('save'); });
+    saveLayoutBtn.classList.add('shell-save');
+    layoutActions.appendChild(saveLayoutBtn);
+    layoutSection.appendChild(layoutActions);
+    layoutSection.appendChild(el('div', 'shell-hint',
+      'Drag the dashed box in the phone to move · right handle = width · click a block to select. Saves to <fold>.layout.mobile.css.'));
+    panel.appendChild(layoutSection);
 
-    // Status + hint.
+    // --- Editor (Text & Style) section -------------------------------------
+    editorSection = el('div', 'shell-section is-hidden');
+    editorControls = el('div', 'shell-editor');
+
+    editorReadoutEl = el('div', 'shell-readout', 'click text in the phone to select · dbl-click to edit');
+    editorControls.appendChild(editorReadoutEl);
+
+    editorControls.appendChild(el('div', 'shell-label', 'STRUCTURE'));
+    structureBox = el('div', 'shell-structure');
+    editorControls.appendChild(structureBox);
+
+    editorControls.appendChild(el('div', 'shell-label', 'TEXT STYLE (mobile only)'));
+    const inspector = el('div', 'shell-inspector');
+    for (const field of CSS_FIELDS) {
+      const row = el('label', 'shell-field');
+      row.appendChild(el('span', 'shell-field-name', field.prop));
+      let input;
+      if (field.type === 'select') {
+        input = document.createElement('select');
+        input.className = 'shell-select';
+        for (const opt of field.options) {
+          const o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt || '(unset)';
+          input.appendChild(o);
+        }
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'shell-input';
+      }
+      const send = () => toAgent('ed:field', { prop: field.prop, value: input.value });
+      input.addEventListener('input', send);
+      input.addEventListener('change', send);
+      inspectorInputs.set(field.prop, input);
+      row.appendChild(input);
+      inspector.appendChild(row);
+    }
+    editorControls.appendChild(inspector);
+
+    const editorActions = el('div', 'shell-row');
+    const saveTextBtn = button('Save text (shared w/ desktop)', () => { setStatus('Saving text…'); toAgent('ed:save-text'); });
+    saveTextBtn.classList.add('shell-warn');
+    saveTextBtn.title = 'Words save to content/<fold>.json — they are SHARED with the desktop site (no per-breakpoint text).';
+    const saveCssBtn = button('Save mobile style', () => { setStatus('Saving style…'); toAgent('ed:save-css'); });
+    saveCssBtn.classList.add('shell-save');
+    editorActions.append(saveTextBtn, saveCssBtn);
+    editorControls.appendChild(editorActions);
+    editorControls.appendChild(el('div', 'shell-hint',
+      'Click text in the phone to select · dbl-click to edit the words (Enter commits, Esc cancels). Style edits apply only at ≤768px → <fold>.overrides.mobile.css.'));
+
+    editorEmpty = el('div', 'shell-hint is-hidden', 'This fold has no text editor.');
+    editorSection.append(editorControls, editorEmpty);
+    panel.appendChild(editorSection);
+
+    // Status + hint (shared).
     statusEl = el('div', 'shell-status', 'Loading frame…');
     panel.appendChild(statusEl);
-    panel.appendChild(el('div', 'shell-hint',
-      'Drag the dashed box in the phone to move · right handle = width · click a block to select. Saves to <fold>.layout.mobile.css.'));
 
     root.append(stage, panel);
+    applyMode();
 
-    // Cmd/Ctrl+S while the panel has focus → save (the agent handles it when the
-    // frame has focus).
+    // Cmd/Ctrl+S while the panel has focus → save the active mode (the agents handle
+    // it when the frame has focus).
     window.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         setStatus('Saving…');
-        toAgent('save');
+        if (mode === 'text') toAgent('ed:save-all');
+        else toAgent('save');
       }
     });
   }

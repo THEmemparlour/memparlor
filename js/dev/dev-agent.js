@@ -41,6 +41,11 @@
     if (NS.__agentBuilt) return NS.__agentHandle || null; // mount exactly once
     NS.__agentBuilt = true;
 
+    // Mode gate: this layout agent owns clicks/drag/save only in the parent's
+    // "layout" mode (the default). In "text" mode the edit agent (dev-agent-edit.js)
+    // takes over, so we go inert. Flipped by the parent's `mode` message.
+    let active = true;
+
     // --- Per-fold state (rebuilt on every fold change by syncFold) ------------
     let foldId = '';
     let selectors = [];
@@ -147,7 +152,7 @@
     // --- Drag (move via overlay, width via handle) — same math as dev-layout --
     let drag = null; // { mode, startX, startY, base:{left,top,width}, op }
     const beginDrag = (mode, e, target) => {
-      if (!curSel) return;
+      if (!active || !curSel) return;
       drag = { mode, startX: e.clientX, startY: e.clientY, base: measure(curSel), op: opRectOf(elFor(curSel)) };
       target.setPointerCapture?.(e.pointerId);
       e.preventDefault();
@@ -183,6 +188,7 @@
     // Click a block in the frame to select it (the parent <select> is the alt path).
     // Capture-phase so we see it first; we don't stop it, so nav/links still work.
     const onDocClick = (e) => {
+      if (!active) return; // inert in text mode — let the edit agent own clicks
       if (e.target.closest('[data-mp-dev]')) return; // ignore our own affordances
       for (const { sel, el } of found) {
         if (el.contains(e.target)) { selectBlock(sel); return; }
@@ -252,11 +258,27 @@
       post(initial ? 'ready' : 'fold', { fold: foldId, blocks: found.map((f) => f.sel) });
     };
 
+    // Flip the mode gate; going inert drops the selection + hides the affordances so
+    // they don't sit over the frame while the edit agent is in charge.
+    const setActive = (on) => {
+      if (active === on) return;
+      active = on;
+      if (!active) {
+        drag = null;
+        curSel = '';
+        overlay.style.display = 'none';
+        widthHandle.style.display = 'none';
+      }
+    };
+
     // --- Parent → agent messages (spec §6) -----------------------------------
     const onMessage = (e) => {
       if (e.origin !== ORIGIN || e.source !== PARENT) return; // same-origin + our parent only
       const msg = e.data || {};
       switch (msg.type) {
+        case 'mode':
+          setActive(msg.mode !== 'text'); // active in 'layout' (default); inert in 'text'
+          break;
         case 'select':
           selectBlock(msg.selector);
           break;
@@ -280,6 +302,7 @@
 
     // Cmd/Ctrl+S inside the frame saves too, so you needn't click back to the panel.
     const onKeyDown = (e) => {
+      if (!active) return; // text mode: the edit agent owns Cmd/Ctrl+S
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -297,8 +320,8 @@
 
     // Initial mount: resolve the active fold now if its config is already registered
     // (else a dev:rendered / fold:change above will drive the first sync).
-    const active = document.documentElement.dataset.fold || (cfg && cfg.id) || '';
-    if (active && NS.devConfigs && NS.devConfigs[active]) syncFold(active, { initial: true });
+    const activeFold = document.documentElement.dataset.fold || (cfg && cfg.id) || '';
+    if (activeFold && NS.devConfigs && NS.devConfigs[activeFold]) syncFold(activeFold, { initial: true });
 
     const handle = {
       destroy() {

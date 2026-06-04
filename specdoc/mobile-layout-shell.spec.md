@@ -18,6 +18,12 @@ they never crowd the canvas.
 This spec covers **mobile** + the **layout (positioning) tool only**. It is
 purely additive: no existing desktop authoring code changes behaviour.
 
+> **Update — text + style added.** The shell now also has a **Text & Style** mode
+> (content words + structure, plus mobile-only text styling), built as a second
+> in-frame agent + parent panel section. The original layout tool below is
+> unchanged. See **§14 Addendum** for the text/style design; §12's "mobile text +
+> spacing" deferral is now implemented.
+
 ## 2. Goals / non-goals
 
 ### Goals
@@ -279,9 +285,10 @@ existing layout/CSS writers).
 
 ## 12. Deferred / future
 
-- **Mobile text + spacing** via a breakpoint-aware overrides pipeline
-  (`dev-editor.js` + `serializeOverrides`) — the higher-value, flow-friendly half
-  of "mobile polish".
+- ~~**Mobile text + spacing** via a breakpoint-aware overrides pipeline
+  (`dev-editor.js` + `serializeOverrides`).~~ **Built — see §14.** (Still deferred:
+  per-breakpoint *content* — mobile words differ from desktop. Today the words are
+  shared via `content/<fold>.json`.)
 - **Picker / media** on mobile through the same parent+agent split.
 - **Unified shell**: author desktop through the frame too (one authoring model).
 - **Side-by-side** desktop + mobile frames; a wider device-width matrix.
@@ -303,3 +310,77 @@ existing layout/CSS writers).
    switcher, controls, protocol host).
 6. Verify in a browser against §11 — including a real ≤768px reload to confirm the
    saved mobile layout applies on the live site.
+
+## 14. Addendum — Text + style editing (built)
+
+Adds a **Text & Style** mode to the shell, the flow-friendly half of "mobile polish"
+deferred in §12. Same parent-controls / in-frame-manipulation split as the layout
+tool, reusing the existing editor machinery. Purely additive — the layout path and
+all desktop authoring are byte-for-byte unchanged.
+
+### 14.1 Two saves, two destinations
+- **Words (content):** `Save text` → `POST /__dev/content` → `content/<fold>.json`.
+  Content has **no per-breakpoint concept**, so editing words in the shell changes
+  them on **desktop too** — the button is labelled `Save text (shared w/ desktop)`.
+- **Mobile text styling:** `Save mobile style` → `POST /__dev/css-mobile` →
+  `css/folds/<fold>.overrides.mobile.css`, wrapped in `@media (max-width:768px)`. It
+  never touches the desktop `.overrides.css` (disjoint files + query, like
+  layout/layout-mobile — §4.2).
+
+### 14.2 Mode toggle
+The parent panel has a `Layout | Text & Style` toggle (default **Layout**, preserving
+prior behaviour). Switching posts `mode {mode}` to the frame; **both** agents read it
+and flip their own `active` flag (mutually exclusive), so only one owns clicks at a
+time. WIDTH + FOLD controls are shared; each mode shows its own controls section.
+
+### 14.3 Components
+- **Edit agent (iframe) — new:** `js/dev/dev-agent-edit.js` (`NS.buildEditAgent()`).
+  The guts of `dev-editor.js` minus its panel: click→select / dbl-click→inline
+  contenteditable, the per-fold structure adapter (each fold's `renderStructure`/
+  `scrape` reused **unchanged** — only `api.group()` is reimplemented to POST button
+  specs to the parent and invoke the stored callback on `ed:action {id}`), and the
+  curated-CSS inspector. The live `<style>` preview is wrapped in
+  `@media (max-width:768px)`. Seeds `overrides` from the saved `.overrides.mobile.css`
+  so re-saves are lossless. **Base subtlety:** the dirty-comparison base
+  (`declaredBase`) reads the mobile cascade **excluding** the live `<style>` and the
+  saved `.overrides.mobile.css` sheet (matched by *pathname*, so it survives the `?v=`
+  reload), and descends into `@media` rules that apply at the frame's ≤768px viewport
+  — needed because mobile base text styles live inside media queries. This diverges
+  from `dev-editor.js`, which neither seeds nor media-descends.
+- **Parent panel — edit:** `js/dev/dev-shell.js` gains the mode toggle and a Text &
+  Style section: a selector readout, a structure-button container (rebuilt from
+  `ed:buttons`), the 8-field inspector (`ed:values` populate; `input`/`change` →
+  `ed:field`), and the two save buttons. `css/dev-shell.css` styles the section,
+  inspector, structure buttons, and the amber `.shell-warn` shared-text button.
+- **Controller — edit:** `js/dev/dev-controller.js` mounts BOTH agents in shell mode
+  (`mountAgents()`); the layout agent (`dev-agent.js`) gains a symmetric `active`
+  gate driven by the same `mode` message. SAVE ALL stays suppressed (parent saves).
+
+### 14.4 Protocol additions (alongside §6; both agents share one frame window)
+**Parent → agent:** `mode {mode}` (both) · `ed:action {id}` · `ed:field {prop,value}`
+· `ed:save-text {}` · `ed:save-css {}` · `ed:save-all {}` (Cmd/Ctrl+S in text mode).
+**Agent → parent:** `ed:fold {fold,hasEditor}` · `ed:buttons {fold,groups:[{title,
+buttons:[{label,title,id}]}]}` · `ed:values {selector,values:{<prop>:{value,
+placeholder}}}` · `ed:readout {selector}` · `ed:save-result {target,ok}`. Same
+origin + source checks on both ends.
+
+### 14.5 Server (`server/dev-server.js`)
+`serializeOverrides(clean, allowedSelectors, media = null)` gains an optional media
+wrap (default null = the original flat output, desktop `/__dev/css` unchanged).
+`saveCssMobile` is a near-copy of `saveCss` with the same `validateOverrides`
+whitelist, writing the media-wrapped file; routed at `/__dev/css-mobile` inside the
+authed POST block.
+
+### 14.6 Static assets
+Six header-only `css/folds/<fold>.overrides.mobile.css` placeholders; six `<link>`s in
+`index.html`, each **after** the fold's `.overrides.css` (so they win inside the query).
+
+### 14.7 Extra acceptance criteria
+- [ ] Toggling to Text & Style hides the layout overlay; clicking text shows the
+      selection outline + populates the inspector + structure buttons.
+- [ ] `Save text` updates `content/<fold>.json`; the same words appear on the desktop
+      site (shared — accepted).
+- [ ] `Save mobile style` writes only `<fold>.overrides.mobile.css` (one
+      `@media (max-width:768px)` block); the desktop `.overrides.css` is unchanged.
+- [ ] A re-save with no edits is byte-identical (seeding is lossless); the change
+      survives a live-site reload at ≤768px and does NOT apply at >768px.
