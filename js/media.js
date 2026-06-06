@@ -20,6 +20,22 @@
   // whole image (translate) and `zoom` scales it about the centre. 50/50/1 is the
   // identity (clean cover); zoom < 1 shrinks it so the base shows around.
   NS.cropTransform = (px, py, z) => `translate(${px - 50}%, ${py - 50}%) scale(${z})`;
+
+  // Background video preloading. By default a fold's clip only fetches when that
+  // fold is first activated (createMedia's `activate`). To make every clip ready
+  // the moment the visitor scrolls to it, we instead kick each video's load in the
+  // background once the page has finished its critical load — deferred to idle so
+  // the initial paint and above-the-fold assets aren't starved. Each video built
+  // below registers its loader here; activation still works (it shares the same
+  // `srcAttached` guard, so it just plays what's already buffered).
+  const schedulePreload = (load) => {
+    const run = () =>
+      window.requestIdleCallback
+        ? window.requestIdleCallback(load, { timeout: 3000 })
+        : setTimeout(load, 200);
+    if (document.readyState === 'complete') run();
+    else window.addEventListener('load', run, { once: true });
+  };
   const parsePos = (s) => {
     const m = (s || '').match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/);
     return m ? [parseFloat(m[1]), parseFloat(m[2])] : [50, 50];
@@ -77,8 +93,10 @@
    *   - image → renders with the given `imgLoading` (default 'lazy'), plus the
    *     opt-in `fit`/`position`/`zoom` crop control (`position` pans the image,
    *     `zoom` scales it — one transform via NS.cropTransform); returns null.
-   *   - video → poster shows immediately; `src` is lazy-attached on the first
-   *     activation; the element always starts muted so autoplay isn't blocked;
+   *   - video → poster shows immediately; `src` is lazy-attached either by the
+   *     background preload (kicked once the page finishes loading, see
+   *     schedulePreload) or, if a fold is entered first, by that activation —
+   *     whichever wins; the element always starts muted so autoplay isn't blocked;
    *     an optional mute/unmute control is rendered when `showMuteControl`.
    *     Honors the same opt-in `fit`/`position`/`zoom` focal crop as images.
    *   - calendly → inline scheduling embed; the Calendly script is injected and
@@ -175,7 +193,7 @@
     // Native player chrome (play/pause + the unmute the autoplay-muted clip needs).
     // Supersedes the optional showMuteControl toggle below, which stays opt-in/off.
     video.controls = true;
-    video.preload = 'none'; // nothing fetched until activation
+    video.preload = 'none'; // until the background preload / activation flips it to 'auto'
     // Same opt-in focal crop as images (the poster + frames are an object-fit:cover
     // box), so a fold like About can reframe its clip via the shared ?dev picker.
     applyCrop(video, media, cropMode);
@@ -203,14 +221,24 @@
     let srcAttached = false;
     const hasSource = typeof media.src === 'string' && media.src !== '';
 
+    // Attach the source and start buffering (no playback). Idempotent via
+    // `srcAttached`, so the background preload below and the on-enter `activate`
+    // can race freely — whichever runs first does the fetch, the other no-ops.
+    const attachSource = () => {
+      if (!hasSource || srcAttached) return;
+      video.preload = 'auto'; // override the 'none' default — we want it buffered
+      video.src = media.src;
+      srcAttached = true;
+      video.load();
+    };
+
+    // Lazy-load every clip in the background on first visit (see schedulePreload).
+    if (hasSource) schedulePreload(attachSource);
+
     return {
       activate() {
         if (!hasSource) return; // placeholder: poster only
-        if (!srcAttached) {
-          video.src = media.src;
-          srcAttached = true;
-          video.load();
-        }
+        attachSource(); // no-op if the background preload already fetched it
         const p = video.play();
         if (p?.catch) p.catch(() => {}); // ignore autoplay rejections
       },

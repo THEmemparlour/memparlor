@@ -11,10 +11,10 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* Clear the fixed header at the top; cream gutters L/R match the Home image. */
-  padding: calc(var(--header-h) + clamp(14px, 3vh, 30px))
-           var(--page-gutter)
-           clamp(22px, 4.5vh, 48px);
+  /* No top padding: html's scroll-padding-top (= --header-h) already rests this
+     fold's top just under the fixed nav, so the video sits flush against the nav
+     bar at the top of the fold. Cream gutters L/R match the Home image. */
+  padding: 0 var(--page-gutter) clamp(22px, 4.5vh, 48px);
   background: var(--color-bg);
 }
 
