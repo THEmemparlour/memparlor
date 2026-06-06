@@ -159,7 +159,7 @@
     const panelTitle = label(`${foldId.toUpperCase()} CROP`); // doubles as the drag handle
     panel.append(panelTitle, label('POSITION'), dpad, label('ZOOM'), zoomRow, readout, saveBtn);
     document.body.appendChild(panel);
-    NS.makeDraggable?.(panel, panelTitle); // drag the panel by its title bar
+    NS.makeDraggable?.(panel, panelTitle, 'picker'); // drag by title bar; position remembered across folds
 
     // --- Apply + render --------------------------------------------------------
     function apply() {

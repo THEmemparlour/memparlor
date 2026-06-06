@@ -203,7 +203,7 @@
 
     document.body.appendChild(panel);
     NS.dockPanel?.(panel, 'left'); // stack below the layout panel (measured height → no overlap)
-    NS.makeDraggable?.(panel, title); // drag the panel by its title bar
+    NS.makeDraggable?.(panel, title, 'media'); // drag by title bar; position remembered across folds
 
     return {
       // Master-save hook: persist media.{src,alt?|poster?} (same payload as the
