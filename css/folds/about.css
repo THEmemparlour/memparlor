@@ -94,8 +94,15 @@
   color: var(--color-ink);
 }
 
-/* Heading — bold sans (distinct from the serif logo wordmark), right-aligned. */
+/* Heading — bold sans (distinct from the serif logo wordmark), right-aligned.
+   Sticky to the viewport bottom: it parks at the bottom edge while the About fold
+   fills the screen (the long poem scrolls past on the left), then releases and
+   scrolls away with the section once the fold's bottom band reaches the viewport.
+   `bottom` matches the fold's bottom padding so it rests in the same gutter. */
 .about__heading {
+  position: sticky;
+  bottom: clamp(22px, 4.5vh, 48px);
+  align-self: flex-end;
   text-align: right;
   flex: 0 0 auto;
   line-height: 1.1;
@@ -114,7 +121,7 @@
   margin: 0; /* reset UA <h2> margins — the title is a real heading element */
   font-family: var(--font-label);
   font-weight: 600;
-  font-size: clamp(1.4rem, 2.8vw, 2.4rem);
+  font-size: clamp(2.2rem, 5.2vw, 4.2rem);
   letter-spacing: 0.01em;
   color: var(--color-ink);
 }
