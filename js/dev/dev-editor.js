@@ -351,7 +351,10 @@
 
     panel.append(title, readout, structureBox, inspectorBox, saveText, saveCss);
     document.body.appendChild(panel);
-    NS.makeDraggable?.(panel, title); // drag the panel by its title bar
+    // Fold editors all share one remembered position ('editor') so it persists as
+    // you scroll between folds; the persistent nav editor sets its own posKey so
+    // dragging it never clobbers the fold editor's spot.
+    NS.makeDraggable?.(panel, title, ed.posKey || 'editor');
 
     renderStructure();
 

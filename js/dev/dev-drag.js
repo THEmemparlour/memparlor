@@ -5,9 +5,14 @@
 
    The panels are anchored to a viewport corner via right/bottom; on the first
    drag we measure the current rect and switch the panel to left/top so dragging
-   controls a single axis pair. Position is intentionally NOT persisted — panels
-   return to their default corner on each load. Only the title bar is the grab
-   handle, so the buttons/inputs inside the panel keep working normally.
+   controls a single axis pair. Only the title bar is the grab handle, so the
+   buttons/inputs inside the panel keep working normally.
+
+   Position IS remembered for the session, keyed by panel role (`key` arg). The
+   panels are torn down and rebuilt on every fold change, so without this a panel
+   the user dragged would snap back to its default corner the moment they scroll
+   to a new fold. The store is in-memory only (window-scoped), so a full page
+   reload still returns panels to their defaults.
    ========================================================================== */
 
 (() => {
@@ -17,10 +22,26 @@
 
   const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
 
-  NS.makeDraggable = (panel, handle) => {
+  // Session-scoped remembered positions, keyed by panel role ('layout', 'editor',
+  // 'media', 'picker', 'nav-editor'). Survives panel teardown/rebuild on fold change.
+  const POS = (NS._panelPos = NS._panelPos || {});
+
+  NS.makeDraggable = (panel, handle, key) => {
     if (!panel || !handle) return;
     handle.style.cursor = 'move';
     handle.style.touchAction = 'none'; // let us own the pointer instead of scrolling
+
+    // Restore where the user last dragged this panel role this session, overriding
+    // the default corner / dock the builder just set. Clamp into the current
+    // viewport so a since-resized window can't strand the panel off-screen.
+    if (key && POS[key]) {
+      const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
+      const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
+      panel.style.left = `${clamp(POS[key].left, 0, maxLeft)}px`;
+      panel.style.top = `${clamp(POS[key].top, 0, maxTop)}px`;
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+    }
 
     let dragging = false;
     let startX = 0;
@@ -55,6 +76,8 @@
     const stop = (e) => {
       if (!dragging) return;
       dragging = false;
+      // Remember this role's position so a fold-change rebuild restores it.
+      if (key) POS[key] = { left: panel.offsetLeft, top: panel.offsetTop };
       handle.releasePointerCapture?.(e.pointerId);
     };
     handle.addEventListener('pointerup', stop);

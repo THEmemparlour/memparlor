@@ -46,6 +46,7 @@
       liveStyleId: 'site-dev-overrides',
       captureClicks: true, // intercept nav clicks before <site-nav>'s own navigate handler
       panelStyle: { left: '16px', right: 'auto' }, // dock left, clear of the fold editor panel
+      posKey: 'nav-editor', // remember this panel's dragged spot separately from the fold editor
 
       scrape() {
         const logoEl = root()?.querySelector('.logo');

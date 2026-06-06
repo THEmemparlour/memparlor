@@ -289,7 +289,7 @@
     panel.append(title, select, readout, hint, resetBtn, saveBtn, mobileBtn);
     document.body.appendChild(panel);
     NS.dockPanel?.(panel, 'left'); // own the left-column position (no overlap with the media panel)
-    NS.makeDraggable?.(panel, title);
+    NS.makeDraggable?.(panel, title, 'layout'); // remember a dragged position across fold changes
 
     // --- Init ------------------------------------------------------------------
     seedFromSaved();
