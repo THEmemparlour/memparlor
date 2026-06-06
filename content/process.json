@@ -24,7 +24,7 @@
   ],
   "media": {
     "type": "video",
-    "src": "",
+    "src": "https://pub-138d523620a44cc5a6069dab12c58f06.r2.dev/media/process/1780714556411-blck-mem-v3.mp4",
     "poster": "/assets/images/process-video-poster-placeholder.jpg",
     "autoplay": true,
     "loop": true,

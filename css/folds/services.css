@@ -55,14 +55,21 @@
 }
 
 /* --- Right column: heading (top) + media (below) --------------------------
-   align-self:start keeps this column anchored at the top (its own content
-   height) instead of stretching to match a long list in column 1. */
+   Sticky: when a long services list grows the fold past one viewport, this
+   column (heading + image) stays pinned in view while the list scrolls past on
+   the left, then releases and scrolls away once the fold's bottom reaches the
+   viewport. Sized to span from below the header down to the bottom gutter so the
+   image (flex:1 below) fills to the bottom of the viewport. */
 .services__col {
   /* Pin to the second grid track so it can't auto-place into column 1 when the
      left list is taken out of grid flow (e.g. the ?dev layout tool sets the list
      to position:absolute). No-op in the normal layout. */
   grid-column: 2;
   align-self: start;
+  position: sticky;
+  top: calc(var(--header-h) + clamp(14px, 3vh, 30px));
+  height: calc(100vh - var(--header-h) - clamp(14px, 3vh, 30px) - clamp(22px, 4.5vh, 48px));
+  height: calc(100dvh - var(--header-h) - clamp(14px, 3vh, 30px) - clamp(22px, 4.5vh, 48px));
   display: flex;
   flex-direction: column;
 }
@@ -88,17 +95,19 @@
   margin: 0; /* reset UA <h2> margins — the title is a real heading element */
   font-family: var(--font-label);
   font-weight: 600;
-  font-size: clamp(1.4rem, 2.8vw, 2.4rem);
+  font-size: clamp(2.2rem, 5.2vw, 4.2rem);
   letter-spacing: 0.01em;
   color: var(--color-ink);
 }
 
-/* Media slot — portrait (taller than wide); capped height so the column stays
-   sane regardless of how long the list grows. */
+/* Media slot — fills the remaining column height beneath the heading so the
+   image extends down to the bottom of the viewport (the column is sized to the
+   viewport in .services__col). min-height:0 lets it shrink within the flex
+   column rather than overflow. */
 .services__media {
   position: relative;
-  flex: 0 0 auto;
-  height: clamp(420px, 60vh, 720px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -141,6 +150,13 @@
     gap: clamp(18px, 3.5vh, 32px);
     padding-left: clamp(16px, 5vw, 28px);
     padding-right: clamp(16px, 5vw, 28px);
+  }
+
+  /* Drop the desktop sticky/full-viewport sizing: on mobile the columns stack and
+     the column flows at its natural height (media height is set below). */
+  .services__col {
+    position: static;
+    height: auto;
   }
 
   /* Pin the heading to the fold's bottom-right corner instead of dropping it
