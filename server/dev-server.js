@@ -580,6 +580,13 @@ function transcodeToH264(input) {
       '-c:v', 'libx264',
       '-profile:v', 'high',
       '-pix_fmt', 'yuv420p', // force 8-bit 4:2:0 — the universally decodable baseline
+      // Square pixels. Some sources (and some transcoders upstream) tag a non-1:1
+      // sample aspect ratio, so a 1280x720 frame claims to *display* at, e.g., 32:9.
+      // ffmpeg preserves that flag by default, and the browser then honors it: the
+      // fold's object-fit:cover box gets the wrong intrinsic ratio and the clip
+      // renders as a small chunk floating in blank space. setsar=1 drops the flag so
+      // the stored pixel grid IS the display grid — what every web video should be.
+      '-vf', 'setsar=1',
       '-preset', FFMPEG_PRESET,
       '-crf', '20',
       '-movflags', '+faststart',
