@@ -88,12 +88,17 @@
       html.removeAttribute('data-nav-hidden');
     }
 
-    // Stuck detection: a heading is pinned once its top edge reaches its sticky
-    // offset (0 with the nav hidden / navH with it shown). +1 tolerates subpixel
-    // rounding; "above the offset" also covers being pushed off by the next fold.
-    const offset = html.hasAttribute('data-nav-hidden') ? 0 : navH;
+    // Stuck detection: a heading is pinned once its top edge reaches the nav's
+    // RENDERED bottom edge, read per-frame. A static 0-or-navH offset flips the
+    // instant data-nav-hidden toggles, but the heading's `top` takes 280ms to
+    // follow — the mismatch flapped is-stuck (and its height change) on every
+    // nav flip. The nav slide and the heading top share the same 280ms ease,
+    // so this threshold tracks the animation exactly. +2 tolerates subpixel
+    // skew between the two transitions; "above the threshold" also covers
+    // being pushed off by the next fold.
+    const navBottom = navEl ? Math.max(0, navEl.getBoundingClientRect().bottom) : 0;
     for (const { el } of slots) {
-      el.classList.toggle('is-stuck', el.getBoundingClientRect().top <= offset + 1);
+      el.classList.toggle('is-stuck', el.getBoundingClientRect().top <= navBottom + 2);
     }
   };
 
