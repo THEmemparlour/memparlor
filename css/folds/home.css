@@ -65,7 +65,7 @@
   letter-spacing: 0.02em;
 }
 
-/* Narrow widths — tighten the headline; the image stays full-fold. */
+/* Narrow widths — tighten the headline and show the whole hero at full width. */
 @media (max-width: 768px) {
   .home__headline {
     top: calc(var(--header-h) + clamp(16px, 4vh, 40px));
@@ -73,5 +73,23 @@
     padding: 0 18px;
     font-size: clamp(1rem, 4.7vw, 2rem);
     letter-spacing: 0.02em;
+  }
+
+  /* Mobile hero: a full-width band pinned to the bottom edge, covering the
+     bottom 2/3 of the viewport (the headline floats in the empty top third). */
+  .home__media {
+    inset: auto 0 0 0; /* full width, anchored to the bottom edge */
+    height: 66.67vh;
+    height: 66.67dvh; /* 2/3 of the (dynamic) viewport */
+  }
+
+  /* Fill that band full-width without distorting (cover crops to fit, preserves
+     aspect ratio), and drop the backdrop pan/zoom (the JS-applied translate +
+     scale) which is meaningful only for the desktop cover layer. `!important`
+     overrides that inline transform. */
+  .home__media-el {
+    object-fit: cover;
+    object-position: center bottom;
+    transform: none !important;
   }
 }
