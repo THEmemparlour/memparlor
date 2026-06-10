@@ -15,6 +15,16 @@
   min-height: 100vh;
 }
 
+/* This fold reserves the nav height itself (padding-top: --header-h on both
+   columns), so cancel html's scroll-padding-top for nav-click landings — the
+   double offset parked the fold ~--header-h low, cutting the bottom heading.
+   Desktop only; contact only (other folds rely on the scroll padding). */
+@media (min-width: 769px) {
+  #fold-contact {
+    scroll-margin-top: calc(-1 * var(--header-h));
+  }
+}
+
 /* --- Left: lede + body (centred), heading pinned to the column bottom --- */
 .contact__text {
   display: flex;
