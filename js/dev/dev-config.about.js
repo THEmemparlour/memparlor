@@ -33,11 +33,11 @@
       rootSelector: '[data-about-root]',
       selectSelectors: '.about__eyebrow, .about__title, .about__poem-line',
       classFor: {
-        'about__eyebrow': '.about__eyebrow',
-        'about__title': '.about__title',
+        'about__eyebrow': '.fold-eyebrow', // shared cross-fold heading typography
+        'about__title': '.fold-title',     // (see css/folds/headings.css)
         'about__poem-line': '.about__poem-line',
       },
-      cssSelectors: ['.about__eyebrow', '.about__title', '.about__poem-line'],
+      cssSelectors: ['.fold-eyebrow', '.fold-title', '.about__poem-line'],
       liveStyleId: 'about-dev-overrides',
 
       scrape() {

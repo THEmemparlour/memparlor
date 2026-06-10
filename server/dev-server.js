@@ -274,6 +274,12 @@ const FOLDS = {
     layoutSelectors: ['.contact__heading', '.contact__lede', '.contact__body'],
     validateContent: validateContactContent,
   },
+  // Shared fold heading typography (not a fold, no content/layout). The ?dev heading
+  // editor on every fold routes its eyebrow/title edits here so one Save styles them
+  // all; written to css/folds/headings.overrides.css via the generic saveCss path.
+  headings: {
+    cssSelectors: ['.fold-eyebrow', '.fold-title'],
+  },
   // The shared nav/header (not a fold). content/site.json + css/folds/site.overrides.css.
   site: {
     // .site-nav__link.is-active = the active link's higher-specificity state; the

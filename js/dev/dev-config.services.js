@@ -63,13 +63,14 @@
     editor: {
       rootSelector: '[data-services-root]',
       selectSelectors: '.services__eyebrow, .services__title, [data-services-body] h2, [data-services-body] p',
-      cssSelectors: ['.services__eyebrow', '.services__title', '.services__list h2', '.services__list p'],
+      cssSelectors: ['.fold-eyebrow', '.fold-title', '.services__list h2', '.services__list p'],
       liveStyleId: 'services-dev-overrides',
 
       // Tag/context-aware selector resolution (the list blocks carry no class).
+      // Eyebrow/title map to the shared cross-fold heading rule (css/folds/headings.css).
       selectorFor(el) {
-        if (el.classList.contains('services__eyebrow')) return '.services__eyebrow';
-        if (el.classList.contains('services__title')) return '.services__title';
+        if (el.classList.contains('services__eyebrow')) return '.fold-eyebrow';
+        if (el.classList.contains('services__title')) return '.fold-title';
         if (el.closest('[data-services-body]')) {
           if (el.tagName === 'H2') return '.services__list h2';
           if (el.tagName === 'P') return '.services__list p';

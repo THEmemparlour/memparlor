@@ -71,6 +71,40 @@
     const overrides = {}; // { selector: { prop: value } } — dirty props only
     let selectedEl = null;
 
+    // --- Shared heading typography (cross-fold) --------------------------------
+    // These eyebrow/title selectors are styled by ONE file (headings.overrides.css),
+    // so a Save on any fold restyles every fold's heading; all other selectors stay in
+    // the fold's own overrides file. Home is exempt — it has no createHeading heading.
+    const SHARED = {
+      selectors: ['.fold-eyebrow', '.fold-title'],
+      fold: 'headings',
+      href: '/css/folds/headings.overrides.css',
+    };
+    const isShared = (sel) => SHARED.selectors.includes(sel);
+    // Pre-load any already-saved shared values into `overrides` so a later Save re-emits
+    // the full shared diff. Without this, editing headings from a second fold would drop
+    // (clobber) what an earlier fold saved — the server rewrites the whole file each Save.
+    function seedSharedOverrides() {
+      const wantPath = new URL(SHARED.href, location.href).pathname;
+      for (const sheet of document.styleSheets) {
+        const node = sheet.ownerNode;
+        if (!node || !node.href || new URL(node.href, location.href).pathname !== wantPath) continue;
+        let rules;
+        try { rules = sheet.cssRules; } catch { return; }
+        for (const rule of rules || []) {
+          if (!rule.style || !rule.selectorText) continue;
+          const sel = rule.selectorText.trim();
+          if (!isShared(sel)) continue;
+          for (const { prop } of CSS_FIELDS) {
+            const v = rule.style.getPropertyValue(prop);
+            if (v) (overrides[sel] = overrides[sel] || {})[prop] = v.trim();
+          }
+        }
+        return;
+      }
+    }
+    seedSharedOverrides();
+
     // --- Injected dev styles (never shipped) -----------------------------------
     const devStyle = document.createElement('style');
     devStyle.setAttribute('data-mp-dev', '');
@@ -342,11 +376,31 @@
         body: JSON.stringify(payload),
       });
 
+    // Persist CSS overrides, routing the shared heading selectors to headings.overrides.css
+    // and everything else to this fold's own file; reload each sheet that was written.
+    // Returns a list of { target, ok } (empty when nothing is dirty).
+    const saveOverrides = async () => {
+      const local = {};
+      const shared = {};
+      for (const [sel, props] of Object.entries(overrides)) (isShared(sel) ? shared : local)[sel] = props;
+      const out = [];
+      if (Object.keys(local).length) {
+        const r = await post('/__dev/css', { fold: foldId, overrides: local });
+        if (r.ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.overrides.css`); // reflect the save in-session
+        out.push({ target: `${foldId} · css`, ok: r.ok });
+      }
+      if (Object.keys(shared).length) {
+        const r = await post('/__dev/css', { fold: SHARED.fold, overrides: shared });
+        if (r.ok) NS.reloadDevStylesheet?.(SHARED.href); // shared heading file — reflect in-session
+        out.push({ target: `${SHARED.fold} · css`, ok: r.ok });
+      }
+      return out;
+    };
+
     const saveText = mkSave('Save text', () => post('/__dev/content', ed.scrape()));
     const saveCss = mkSave('Save CSS', async () => {
-      const res = await post('/__dev/css', { fold: foldId, overrides });
-      if (res.ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.overrides.css`); // reflect the save in-session
-      return res;
+      const out = await saveOverrides();
+      return { ok: out.every((r) => r.ok) }; // empty (nothing dirty) → ok
     });
 
     panel.append(title, readout, structureBox, inspectorBox, saveText, saveCss);
@@ -371,11 +425,7 @@
         const out = [];
         const text = await post('/__dev/content', ed.scrape());
         out.push({ target: `${foldId} · text`, ok: text.ok });
-        if (Object.keys(overrides).length) {
-          const css = await post('/__dev/css', { fold: foldId, overrides });
-          if (css.ok) NS.reloadDevStylesheet?.(`/css/folds/${foldId}.overrides.css`); // reflect the save in-session
-          out.push({ target: `${foldId} · css`, ok: css.ok });
-        }
+        if (Object.keys(overrides).length) out.push(...(await saveOverrides()));
         return out;
       },
       // Show/hide + gate the editor without tearing it down (used by the nav
