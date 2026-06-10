@@ -126,28 +126,44 @@
 .services__mute.is-muted::before { content: "\1F507"; }
 
 /* ==========================================================================
-   Responsive — sensible defaults only (refined in a later mobile pass).
-   Columns stack; the media drops below the list. (True normal-scroll on mobile
-   is part of the deferred mobile polish.)
+   Responsive — mobile stacks vertically: a full-bleed image on top, then the
+   services list beneath it, each spanning the full viewport width.
    ========================================================================== */
 
 @media (max-width: 768px) {
+  /* Switch the two-column grid to a single vertical flex stack. `order` puts the
+     media column first (it's second in the DOM), then the list. No top padding or
+     side gutters here so the image bleeds edge-to-edge and sits flush under the
+     fixed header (scroll-padding-top rests the fold below the header on nav). The
+     list reinstates its own gutters below. */
   .services {
-    grid-template-columns: 1fr;
-    gap: clamp(18px, 3.5vh, 32px);
-    padding-left: clamp(16px, 5vw, 28px);
-    padding-right: clamp(16px, 5vw, 28px);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
   }
 
-  /* Drop the desktop sticky/full-viewport sizing: on mobile the columns stack and
-     the column flows at its natural height (media height is set below). */
+  /* Image block: first in the stack and full viewport width. Reset the desktop
+     `grid-column: 2` pin — otherwise the single-column grid spills it into an
+     implicit second track and the image sits beside the text. Also drop the
+     full-viewport height (media height is set below). */
   .services__col {
+    grid-column: auto;
+    order: -1;
     position: static;
+    width: 100%;
     height: auto;
   }
 
-  /* Pin the heading to the fold's bottom-right corner instead of dropping it
-     to the top-left of the stacked column. */
+  /* Image fills the top band, full width of the viewport. */
+  .services__media {
+    flex: 0 0 auto;
+    width: 100%;
+    height: clamp(40vh, 48vh, 56vh);
+  }
+
+  /* Heading pinned to the fold's bottom-right corner (anchored to .services,
+     resting over the cream list area — matches the About fold's mobile heading). */
   .services__heading {
     position: absolute;
     right: clamp(16px, 5vw, 28px);
@@ -157,8 +173,12 @@
     z-index: 3;
   }
 
-  .services__media {
-    flex: 0 0 auto;
-    height: clamp(34vh, 40vh, 46vh);
+  /* Services list below the image, full width with comfortable gutters. Extra
+     bottom padding reserves room so the last line clears the pinned heading. */
+  .services__list {
+    order: 0;
+    padding: clamp(22px, 4.5vh, 36px)
+             clamp(16px, 5vw, 28px)
+             clamp(4rem, 12vh, 6rem);
   }
 }
