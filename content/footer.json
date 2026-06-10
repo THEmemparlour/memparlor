@@ -1,0 +1,20 @@
+{
+  "brand": {
+    "wordmark": "MEMORY PARLOUR",
+    "tagline": "Preserving family legacy, one memory at a time."
+  },
+  "cta": {
+    "label": "Book a Call",
+    "path": "/contact-us",
+    "fold": "contact"
+  },
+  "phone": {
+    "label": "+91 7405358481",
+    "href": "tel:+917405358481"
+  },
+  "social": [
+    { "label": "Instagram", "href": "https://www.instagram.com/thememoryparlour/" }
+  ],
+  "author": "Riddhi Zaveri",
+  "copyright": "© 2024 Memory Parlour. All rights reserved."
+}
