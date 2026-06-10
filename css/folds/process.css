@@ -97,14 +97,21 @@
    the upper text row (.process__top, its containing block) ends — right as the
    video band scrolls into view. The `top` offset matches the fold's top padding
    so the heading pins in the same spot it rests at. Mobile detaches it into the
-   shared fixed bottom bar (see css/folds/headings.css), so this is desktop-only. */
+   shared fixed bottom bar (see css/folds/headings.css), so the sticky pinning is
+   gated to desktop widths — an ungated `top` would survive into mobile, combine
+   with the bar's `bottom: 0`, and stretch the fixed bar to full height. */
 .process__heading {
-  position: sticky;
-  top: calc(var(--header-h) + clamp(14px, 3vh, 30px));
   flex: 0 0 auto;
   align-self: flex-start;
   text-align: right;
   line-height: 1.1;
+}
+
+@media (min-width: 769px) {
+  .process__heading {
+    position: sticky;
+    top: calc(var(--header-h) + clamp(14px, 3vh, 30px));
+  }
 }
 
 /* Eyebrow + title typography is shared across all folds — see css/folds/headings.css. */
