@@ -15,6 +15,8 @@
 
   <!-- Base styles + per-fold split -->
   <link rel="stylesheet" href="/css/base.css" />
+  <!-- Shared footer (renders after the last fold). -->
+  <link rel="stylesheet" href="/css/footer.css" />
   <!-- Shared fold heading typography (one rule for every fold's eyebrow + title). -->
   <link rel="stylesheet" href="/css/folds/headings.css" />
   <!-- Saved by the ?dev heading editor; must load after headings.css to win the cascade. -->
@@ -163,6 +165,9 @@
     </section>
   </main>
 
+  <!-- Shared footer (renders its own markup from content/footer.json) -->
+  <site-footer></site-footer>
+
   <script src="/js/nav.js" defer></script>
   <script src="/js/folds.js" defer></script>
   <!-- Shared media + heading renderers, used by about/services/process. -->
@@ -182,5 +187,8 @@
 
   <!-- Contact Us — lede + body + lazy Calendly inline embed. -->
   <script src="/js/contact.js" defer></script>
+
+  <!-- Shared footer — renders from content/footer.json. -->
+  <script src="/js/footer.js" defer></script>
 </body>
 </html>
