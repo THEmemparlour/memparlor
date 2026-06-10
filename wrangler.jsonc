@@ -8,7 +8,13 @@
   "name": "memparlor",
   "compatibility_date": "2026-06-02",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    // SPA fallback: the site is one index.html with six client-routed folds
+    // (/faqs, /about-us, …). Without this, a direct hit / refresh on those
+    // paths has no matching asset and Cloudflare returns its own 404. This
+    // serves index.html (200) for any unmatched route so js/folds.js can read
+    // location.pathname and jump to the right fold.
+    "not_found_handling": "single-page-application"
   },
   "observability": {
     "enabled": true
