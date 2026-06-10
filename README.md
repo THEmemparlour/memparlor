@@ -90,9 +90,13 @@ npm run dev
 about the codec *inside* it — iPhones, for instance, capture **10-bit HEVC**, which
 Chrome can't decode at all and many iPhones render as a black frame over a running
 timeline. So every video upload is normalized on the way to R2: the server pipes it
-through `ffmpeg` to **8-bit H.264 (`yuv420p`, High profile) + AAC, `+faststart`** —
-the format every browser/phone renders — and stores the result as `.mp4` (a `.mov`/
-`.webm` input lands as `.mp4`). Images are stored verbatim. This needs `ffmpeg` on
+through `ffmpeg` to **8-bit H.264 (`yuv420p`, High profile) + AAC, `+faststart`,
+square pixels (`setsar=1`)** — the format every browser/phone renders — and stores
+the result as `.mp4` (a `.mov`/`.webm` input lands as `.mp4`). The `setsar=1`
+normalizes the pixel aspect ratio: a source tagged with a non-1:1 SAR otherwise keeps
+that flag through the encode, so the browser displays the clip at the wrong aspect and
+the fold's `object-fit:cover` box renders it as a small chunk in blank space. Images
+are stored verbatim. This needs `ffmpeg` on
 `PATH` (the server warns at startup and the video upload 502s with an actionable
 message if it's missing). Tunable via env: `FFMPEG_PATH` (default `ffmpeg`),
 `FFMPEG_PRESET` (default `veryfast`), `FFMPEG_TIMEOUT_S` (default 180).
