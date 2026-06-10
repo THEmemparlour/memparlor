@@ -1,8 +1,8 @@
 /* ==========================================================================
    Contact fold — per-fold styles only (base.css owns tokens/header/fold
-   framework). Three regions: lede + body (left) | Calendly embed (right) |
-   eyebrow+title heading (bottom-right). Default dark-on-cream header (shared
-   default logo). See specdoc/contact-fold.md.
+   framework). Two columns: lede + body + eyebrow/title heading (left, heading
+   pinned bottom-left) | Calendly embed (right). Default dark-on-cream header
+   (shared default logo). See specdoc/contact-fold.md.
    ========================================================================== */
 
 .contact {
@@ -15,14 +15,21 @@
   min-height: 100vh;
 }
 
-/* --- Left: lede + body --- */
+/* --- Left: lede + body (centred), heading pinned to the column bottom --- */
 .contact__text {
+  display: flex;
+  flex-direction: column;
+  padding: var(--header-h) var(--page-gutter) var(--page-gutter);
+  max-width: 36rem;
+}
+
+/* Lede + body stay vertically centred in the space above the heading. */
+.contact__text-center {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: clamp(14px, 2.4vh, 28px);
-  padding: var(--header-h) var(--page-gutter) var(--page-gutter);
-  max-width: 36rem;
 }
 
 .contact__lede {
@@ -46,7 +53,7 @@
   margin-top: 0.5em;
 }
 
-/* --- Right: embed (fills the space) + heading beneath it (bottom-right) --- */
+/* --- Right: Calendly embed (fills the space) --- */
 .contact__main {
   display: flex;
   flex-direction: column;
@@ -83,10 +90,12 @@
   text-transform: uppercase;
 }
 
+/* Pinned to the bottom of the left column (.contact__text-center grows to fill
+   the space above it). Left-aligned to sit under the lede/body. */
 .contact__heading {
   flex: 0 0 auto;
   margin-top: clamp(16px, 2.6vh, 30px);
-  text-align: right;
+  text-align: left;
   line-height: 1;
 }
 
@@ -112,10 +121,7 @@
     height: 60vh;
   }
 
-  /* The fold scrolls vertically on mobile, so keep the heading in flow (an absolute
-     pin would fight the scroll) — it's already last, after the embed; right-aligned
-     keeps it in the bottom-right like the other folds. */
-  .contact__heading {
-    text-align: right;
-  }
+  /* Stacked: the heading flows after the lede/body within the left text block
+     (the centring wrapper no longer expands in an auto-height row). Left-aligned
+     from the base rule — no override needed. */
 }

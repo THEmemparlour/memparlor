@@ -8,6 +8,7 @@
 :root {
   /* --- Color (placeholder tokens) --- */
   --color-bg:        #f7f5e7;   /* warm cream / ivory */
+  --color-bg-nav:    #e8e6d9;   /* nav bar — slightly darker warm cream */
   --color-ink:       #1c1b16;   /* near-black warm text */
   --color-ink-soft:  #56534a;   /* muted ink for inactive nav, secondary text */
   --color-ink-hairline: rgba(28, 27, 22, 0.18);
@@ -73,13 +74,13 @@ site-nav {
   inset: 0 0 auto 0;
   z-index: 100;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--page-gutter);
-  padding: clamp(18px, 3.2vh, 34px) var(--page-gutter);
-  /* Opaque bar matching the page background, so content scrolls behind it
-     rather than showing through. */
-  background: var(--color-bg);
+  padding: 15px var(--page-gutter);
+  /* Opaque bar, a touch darker than the page background, so content scrolls
+     behind it rather than showing through and the bar reads as distinct. */
+  background: var(--color-bg-nav);
   pointer-events: none; /* clicks fall through to the page; links/buttons re-enable below */
 }
 
@@ -141,7 +142,6 @@ site-nav button { pointer-events: auto; }
   list-style: none;
   margin: 0;
   padding: 0;
-  margin-top: 0.4em;
 }
 
 .site-nav__link {

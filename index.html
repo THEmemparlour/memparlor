@@ -144,18 +144,20 @@
     </section>
 
     <!-- Contact Us — real content, populated client-side by js/contact.js.
-         Three regions: lede + body (left) | Calendly inline embed (right) |
-         heading (bottom-right). The embed is lazy-loaded on first enter via the
-         fold lifecycle; empty url → placeholder block. -->
+         Three regions: lede + body + heading (left, heading pinned bottom) |
+         Calendly inline embed (right). The embed is lazy-loaded on first enter via
+         the fold lifecycle; empty url → placeholder block. -->
     <section class="fold" data-fold="contact" id="fold-contact" aria-label="Contact Us">
       <div class="contact" data-contact-root>
         <div class="contact__text">
-          <p class="contact__lede" data-contact-lede></p>
-          <div class="contact__body" data-contact-body></div>
+          <div class="contact__text-center">
+            <p class="contact__lede" data-contact-lede></p>
+            <div class="contact__body" data-contact-body></div>
+          </div>
+          <div class="contact__heading" data-contact-heading></div>
         </div>
         <div class="contact__main">
           <div class="contact__embed" data-contact-media></div>
-          <div class="contact__heading" data-contact-heading></div>
         </div>
       </div>
     </section>
