@@ -31,10 +31,10 @@
       classFor: {
         'contact__lede': '.contact__lede',
         'contact__body-line': '.contact__body-line',
-        'contact__eyebrow': '.contact__eyebrow',
-        'contact__title': '.contact__title',
+        'contact__eyebrow': '.fold-eyebrow', // shared cross-fold heading typography
+        'contact__title': '.fold-title',     // (see css/folds/headings.css)
       },
-      cssSelectors: ['.contact__lede', '.contact__body-line', '.contact__eyebrow', '.contact__title'],
+      cssSelectors: ['.contact__lede', '.contact__body-line', '.fold-eyebrow', '.fold-title'],
       liveStyleId: 'contact-dev-overrides',
 
       scrape() {

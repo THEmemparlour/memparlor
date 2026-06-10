@@ -76,12 +76,16 @@
     el.textContent = '';
     if (!heading) return;
 
+    // The per-fold class (`${prefix}__eyebrow`) is kept as a hook for each fold's
+    // position/mobile rules; the shared `fold-eyebrow`/`fold-title` classes carry the
+    // single, cross-fold typography (css/folds/headings.css) so the ?dev heading editor
+    // can style every fold's heading at once. Home doesn't use this helper, so it's exempt.
     const eyebrow = document.createElement('div');
-    eyebrow.className = `${prefix}__eyebrow`;
+    eyebrow.className = `${prefix}__eyebrow fold-eyebrow`;
     eyebrow.textContent = heading.eyebrow || '';
 
     const title = document.createElement(as);
-    title.className = `${prefix}__title`;
+    title.className = `${prefix}__title fold-title`;
     title.textContent = heading.title || '';
 
     el.append(eyebrow, title);

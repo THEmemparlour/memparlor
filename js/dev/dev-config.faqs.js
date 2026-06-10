@@ -42,12 +42,12 @@
       rootSelector: '[data-faqs-root]',
       selectSelectors: '.faqs__eyebrow, .faqs__title, .faqs__question, .faqs__answer-line',
       classFor: {
-        'faqs__eyebrow': '.faqs__eyebrow',
-        'faqs__title': '.faqs__title',
+        'faqs__eyebrow': '.fold-eyebrow', // shared cross-fold heading typography
+        'faqs__title': '.fold-title',     // (see css/folds/headings.css)
         'faqs__question': '.faqs__question',
         'faqs__answer-line': '.faqs__answer-line',
       },
-      cssSelectors: ['.faqs__eyebrow', '.faqs__title', '.faqs__question', '.faqs__answer-line'],
+      cssSelectors: ['.fold-eyebrow', '.fold-title', '.faqs__question', '.faqs__answer-line'],
       liveStyleId: 'faqs-dev-overrides',
 
       scrape() {

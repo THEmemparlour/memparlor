@@ -1,0 +1,27 @@
+/* ==========================================================================
+   Memory Parlour — shared fold heading typography
+   One source of truth for every fold's eyebrow + title (about/services/process/
+   faqs/contact). Each heading element carries `.fold-eyebrow` / `.fold-title`
+   (added by createHeading in js/media.js) in addition to its per-fold class.
+   The per-fold CSS keeps only the heading's POSITION; the look lives here so the
+   ?dev heading editor can restyle all folds at once. Home is exempt — it renders a
+   segmented .home__headline and never uses createHeading.
+   ========================================================================== */
+
+.fold-eyebrow {
+  font-family: var(--font-label);
+  font-weight: 400;
+  font-size: clamp(0.8rem, 1.1vw, 1rem);
+  letter-spacing: 0.04em;
+  color: var(--color-ink);
+  margin-bottom: 0.15em;
+}
+
+.fold-title {
+  margin: 0; /* reset UA <h2> margins — the title is a real heading element */
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: clamp(2.2rem, 5.2vw, 4.2rem);
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+}

@@ -65,14 +65,15 @@
     editor: {
       rootSelector: '[data-process-root]',
       selectSelectors: '.process__eyebrow, .process__title, .process__lede-line, .process__step-title, .process__step-desc',
-      cssSelectors: ['.process__eyebrow', '.process__title', '.process__lede-line', '.process__step-head', '.process__step-desc'],
+      cssSelectors: ['.fold-eyebrow', '.fold-title', '.process__lede-line', '.process__step-head', '.process__step-desc'],
       liveStyleId: 'process-dev-overrides',
 
       // The step title/description carry their own classes but their styles live on
-      // the shared `.process__step-head` / `.process__step-desc` rules.
+      // the shared `.process__step-head` / `.process__step-desc` rules. Eyebrow/title map
+      // to the shared cross-fold heading rule (css/folds/headings.css).
       selectorFor(el) {
-        if (el.classList.contains('process__eyebrow')) return '.process__eyebrow';
-        if (el.classList.contains('process__title')) return '.process__title';
+        if (el.classList.contains('process__eyebrow')) return '.fold-eyebrow';
+        if (el.classList.contains('process__title')) return '.fold-title';
         if (el.classList.contains('process__lede-line')) return '.process__lede-line';
         if (el.classList.contains('process__step-title')) return '.process__step-head';
         if (el.classList.contains('process__step-desc')) return '.process__step-desc';
