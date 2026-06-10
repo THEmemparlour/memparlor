@@ -91,9 +91,18 @@
   color: var(--color-ink);
 }
 
-/* Heading — bold sans, right-aligned (same pattern as Services/About). */
+/* Heading — bold sans, right-aligned (same pattern as Services/About).
+   Sticky to the viewport top: it pins just below the fixed header and stays
+   there while the numbered steps scroll past on the left, then releases once
+   the upper text row (.process__top, its containing block) ends — right as the
+   video band scrolls into view. The `top` offset matches the fold's top padding
+   so the heading pins in the same spot it rests at. Mobile re-pins it to the
+   fold's bottom-right corner below (position:absolute), so this is desktop-only. */
 .process__heading {
+  position: sticky;
+  top: calc(var(--header-h) + clamp(14px, 3vh, 30px));
   flex: 0 0 auto;
+  align-self: flex-start;
   text-align: right;
   line-height: 1.1;
 }

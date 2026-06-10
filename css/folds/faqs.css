@@ -1,54 +1,85 @@
 /* ==========================================================================
    FAQs fold — per-fold styles only (base.css owns tokens/header/fold framework).
-   Three regions: full-height left image | centered Q&A list | bottom-right
-   heading. The header logo is the shared default (solid dark ink) — no FAQ-only
-   treatment. See specdoc/faqs-fold.md.
+   Three regions: a left image | centered Q&A list | bottom-right heading. Unlike
+   the other folds this one does NOT reserve a full viewport — its height tracks
+   the Q&A content (see #fold-faqs below), so a short list no longer leaves a
+   screen of empty space to scroll past. The left image fills that height and the
+   heading sits at its bottom-right; only once the list outgrows the viewport is
+   the image capped to one screen and pinned (sticky) while the column scrolls.
+   The header logo is the shared default (solid dark ink) — no FAQ-only treatment.
+   See specdoc/faqs-fold.md.
    ========================================================================== */
+
+/* The shared fold framework floors every section at one viewport (base.css
+   `.fold`). FAQs opts out: with only a handful of short Q&As that floor left a
+   whole screen of empty space below the content, so here the fold collapses to
+   its content height. */
+#fold-faqs {
+  min-height: 0;
+}
 
 .faqs {
   display: grid;
   grid-template-columns: clamp(260px, 34vw, 520px) 1fr;
-  /* One row that fills the viewport when the Q&A is short and grows past it when
-     the list is long (the page scrolls). The left image and the bottom-right
-     heading track that row height. */
-  grid-template-rows: 1fr;
+  /* A single content-height row: the Q&A column (.faqs__main) sets the height and
+     the left image + bottom-right heading track it. A long list grows the row
+     past the viewport and the page scrolls. */
+  grid-template-rows: auto;
   width: 100%;
-  min-height: 100vh;
 }
 
-/* --- Left: full-height image column (bleeds to left/top/bottom edges) --- */
+/* --- Left: image column, fills the fold height ------------------------------
+   Stretches to the content-height row, so a short fold shows a short image band
+   and a tall one a taller band. min-height:0 stops the image from forcing the row
+   taller than the Q&A content — its <img> is absolutely positioned (below) so it
+   never contributes its intrinsic height. The max-height caps the band at one
+   screen and `position: sticky` (below the nav) pins it there, so once the Q&A
+   column outgrows the viewport the image holds while the list scrolls, then
+   releases with the section. Mobile resets this to a static top band (see the
+   media query). */
 .faqs__image {
   margin: 0;
-  height: 100%;
+  position: sticky;
+  top: var(--header-h);
+  align-self: stretch;
+  min-height: 0;
+  max-height: calc(100vh - var(--header-h));
+  max-height: calc(100dvh - var(--header-h));
   overflow: hidden;
   /* zoom < 1 shrinks the image within the frame; show cream behind it. */
   background: var(--color-bg);
 }
 
 .faqs__media-el {
+  /* Absolutely filled so the image tracks the figure's height (set by the Q&A
+     column) instead of dictating it with its own intrinsic size. */
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover; /* object-position comes from media.position (inline) */
   display: block;
 }
 
-/* --- Right: centered Q&A list + bottom-right heading share this region --- */
+/* --- Right: centered Q&A list + bottom-right heading share this region -------
+   A flex column sized by its content (no viewport floor): the Q&A list sits at
+   the top, centred horizontally, and the heading follows at the bottom-right.
+   This column's height — plus the image that tracks it — is what the fold
+   collapses to. A long list grows it past the viewport and the page scrolls,
+   while the image and heading stay pinned. */
 .faqs__main {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Clear the fixed header up top; sides gutter. The extra bottom space reserves
-     room for the absolutely-positioned heading so the centered/scrolling list
-     never sits on top of it. */
-  padding: var(--header-h) var(--page-gutter) clamp(5rem, 15vh, 8.5rem);
+  flex-direction: column;
+  padding: var(--header-h) var(--page-gutter) clamp(20px, 5vh, 56px);
 }
 
 .faqs__list {
   width: 100%;
   max-width: 34rem;
-  /* Flows with the page (no internal scroll); a long list grows the FAQs row. */
-  padding-right: clamp(8px, 1.5vw, 24px);
+  /* Centre the block horizontally in the column; vertical rhythm is the column's
+     padding plus the heading's margin below — the list carries no padding of its own. */
+  margin: 0 auto;
 }
 
 .faqs__item + .faqs__item {
@@ -79,11 +110,20 @@
   margin-top: 0.5em;
 }
 
-/* --- Bottom-right heading ("The / Experience") --- */
+/* --- Bottom-right heading ("The / Experience") ------------------------------
+   Stuck to the bottom-right of the viewport while the Q&A column scrolls, then
+   released to scroll away with the image once the fold ends (native sticky). It
+   sits in the column's flow as the last item; align-self: flex-end keeps it on
+   the right, flush to the column's right gutter, and the sticky bottom offset
+   matches .faqs__main's bottom padding so it rests in place when nothing scrolls.
+   Mobile re-pins it to the fold's bottom-right corner (position:absolute) below. */
 .faqs__heading {
-  position: absolute;
-  right: var(--page-gutter);
+  position: sticky;
   bottom: clamp(20px, 5vh, 56px);
+  align-self: flex-end;
+  /* Separate it from the Q&A above now the column is content-height (no longer a
+     full viewport of empty space between them). */
+  margin-top: clamp(32px, 6vh, 72px);
   text-align: right;
   line-height: 1;
 }
@@ -97,10 +137,33 @@
     grid-template-rows: 38vh 1fr;
   }
 
+  /* Undo the desktop sticky/capped image: here it's a top band that fills its
+     38vh grid row. position:relative (not static) so the absolutely-filled <img>
+     still positions against the figure; max-height:none drops the desktop cap. */
+  .faqs__image {
+    position: relative;
+    top: auto;
+    align-self: auto;
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+  }
+
   .faqs__main {
-    /* Bottom padding reserves room for the pinned heading so the scrolling list
-       doesn't slide under it. */
+    /* Centre the Q&A in the lower grid row (undo the desktop flex column / pinned
+       layout). Bottom padding reserves room for the pinned heading so the
+       scrolling list doesn't slide under it. */
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
     padding: clamp(20px, 6vh, 48px) var(--page-gutter) clamp(4.5rem, 13vh, 7rem);
+  }
+
+  /* Drop the desktop auto-centring margins; the list flows and is centred by the
+     flex parent above. */
+  .faqs__list {
+    margin: 0;
   }
 
   /* Keep the heading pinned to the bottom-right (here, of the lower grid row,
