@@ -24,13 +24,13 @@
   ],
   "media": {
     "type": "video",
-    "src": "https://media.thememoryparlour.com/media/process/1781097009060-black-memev1.mp4",
+    "src": "https://media.thememoryparlour.com/media/process/1781111993086-black-memev1-fixed.mp4",
     "poster": "/assets/images/process-video-poster-placeholder.jpg",
     "autoplay": true,
     "loop": true,
     "muted": true,
     "showMuteControl": false,
-    "position": "51% 77%",
+    "position": "50% 50%",
     "zoom": 1
   }
 }
