@@ -67,7 +67,9 @@
 .contact__main {
   display: flex;
   flex-direction: column;
-  padding: var(--header-h) var(--page-gutter) clamp(20px, 5vh, 56px);
+  /* Top: the rendered nav bar (~84px; taller than --header-h on shorter
+     viewports) plus a 25px gap so the embed never tucks behind the bar. */
+  padding: calc(84px + 25px) var(--page-gutter) clamp(20px, 5vh, 56px);
   min-width: 0;
 }
 
