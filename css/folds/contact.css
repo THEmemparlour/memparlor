@@ -121,7 +121,9 @@
   }
 
   .contact__text {
-    padding: calc(var(--header-h) + 4vh) var(--page-gutter) clamp(16px, 3vh, 28px);
+    /* Modest top gap (value picked visually in devtools) — the sticky heading
+       bar above (fold start) already clears the nav, so no --header-h offset. */
+    padding: 35px var(--page-gutter) clamp(16px, 3vh, 28px);
   }
 
   .contact__main {
@@ -133,7 +135,6 @@
     height: 60vh;
   }
 
-  /* Stacked: the heading flows after the lede/body within the left text block
-     (the centring wrapper no longer expands in an auto-height row). Left-aligned
-     from the base rule — no override needed. */
+  /* Heading: moved to the fold's start as a sticky top bar on mobile — see
+     css/folds/headings.css + js/headings-mobile.js. */
 }

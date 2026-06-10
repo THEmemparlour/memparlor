@@ -127,8 +127,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: clamp(18px, 3.5vh, 32px);
-    /* Reserve room so the poem clears the bottom-right heading pinned below. */
-    padding-bottom: clamp(4rem, 12vh, 6rem);
   }
 
   /* Stacked layout: let the poem flow naturally instead of capping it to the band
@@ -139,5 +137,6 @@
     padding-right: 0;
   }
 
-  /* Heading is the shared fixed bottom bar on mobile — see css/folds/headings.css. */
+  /* Heading: moved to the fold's start as a sticky top bar on mobile — see
+     css/folds/headings.css + js/headings-mobile.js. */
 }

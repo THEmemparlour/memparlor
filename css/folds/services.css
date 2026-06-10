@@ -162,14 +162,12 @@
     height: clamp(40vh, 48vh, 56vh);
   }
 
-  /* Heading is the shared fixed bottom bar on mobile — see css/folds/headings.css. */
+  /* Heading: moved to the fold's start as a sticky top bar on mobile — see
+     css/folds/headings.css + js/headings-mobile.js. */
 
-  /* Services list below the image, full width with comfortable gutters. Extra
-     bottom padding reserves room so the last line clears the fixed heading bar. */
+  /* Services list below the image, full width with comfortable gutters. */
   .services__list {
     order: 0;
-    padding: clamp(22px, 4.5vh, 36px)
-             clamp(16px, 5vw, 28px)
-             clamp(4rem, 12vh, 6rem);
+    padding: clamp(22px, 4.5vh, 36px) clamp(16px, 5vw, 28px);
   }
 }

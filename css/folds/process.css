@@ -96,10 +96,10 @@
    there while the numbered steps scroll past on the left, then releases once
    the upper text row (.process__top, its containing block) ends — right as the
    video band scrolls into view. The `top` offset matches the fold's top padding
-   so the heading pins in the same spot it rests at. Mobile detaches it into the
-   shared fixed bottom bar (see css/folds/headings.css), so the sticky pinning is
-   gated to desktop widths — an ungated `top` would survive into mobile, combine
-   with the bar's `bottom: 0`, and stretch the fixed bar to full height. */
+   so the heading pins in the same spot it rests at. Mobile moves the heading to
+   the fold's start as a sticky top bar (css/folds/headings.css +
+   js/headings-mobile.js), so this pin stays gated to desktop widths to keep the
+   desktop `top` offset out of the mobile rules. */
 .process__heading {
   flex: 0 0 auto;
   align-self: flex-start;
@@ -178,5 +178,6 @@
     z-index: 2;
   }
 
-  /* Heading is the shared fixed bottom bar on mobile — see css/folds/headings.css. */
+  /* Heading: moved to the fold's start as a sticky top bar on mobile — see
+     css/folds/headings.css + js/headings-mobile.js. */
 }

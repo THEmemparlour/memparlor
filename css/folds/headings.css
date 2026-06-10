@@ -27,56 +27,68 @@
 }
 
 /* ==========================================================================
-   Mobile (≤768px) — fold heading as a fixed bottom bar
-   On phones each fold's eyebrow + title detaches from the fold and pins to the
-   bottom of the viewport as a persistent, full-width cream bar — a bottom
-   counterpart to the fixed <site-nav> at the top. Only the active fold's heading
-   shows (driven by <html data-fold>, set by js/folds.js): the bar stays put while
-   you scroll and its text swaps as you move between folds, painting over (not
-   reflowing) that fold's content. Home is exempt — it has no .fold-heading.
-   Desktop is unchanged (each fold keeps its own in-flow / sticky heading).
-   ========================================================================== */
+   Mobile (≤768px) — in-flow heading at the fold start, sticky to the top
+   On phones each fold's eyebrow + title sits at the START of its fold (moved
+   there by js/headings-mobile.js — native sticky needs the whole fold as its
+   range), scrolls up with the content, then pins to the viewport top and
+   condenses into a compact cream bar (`.is-stuck`, toggled by the same script).
+   The next fold's heading pushes the pinned one off-screen (push handoff).
+   While the auto-hiding nav is shown a pinned heading sticks BELOW it
+   (top: --nav-h, measured from the rendered bar); when the nav hides on a
+   downward scroll the heading slides up to the top edge. Home is exempt — it
+   has no .fold-heading. Desktop is unchanged (each fold keeps its own
+   in-flow / sticky heading).
+   `.fold .fold-heading` (0,2,0) outranks the per-fold heading rules
+   (.about__heading etc.), which load later but at (0,1,0). */
 @media (max-width: 768px) {
-  /* Every fold heading is hidden by default; the active one is revealed below. */
-  .fold-heading { display: none; }
-
-  /* Reveal + lay out the active fold's heading as the fixed bottom bar. Pairing
-     html[data-fold="…"] with the per-fold .…__heading class outranks any single
-     per-fold heading rule, so this wins regardless of stylesheet load order. */
-  html[data-fold="about"]    .about__heading,
-  html[data-fold="services"] .services__heading,
-  html[data-fold="process"]  .process__heading,
-  html[data-fold="faqs"]     .faqs__heading,
-  html[data-fold="contact"]  .contact__heading {
-    display: block;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 90; /* above fold content; below the nav + mobile menu (z-index:100) */
+  .fold .fold-heading {
+    position: sticky;
+    top: var(--nav-h, var(--header-h));
+    bottom: auto; /* undo the desktop sticky-bottom pins (About/FAQs) */
+    z-index: 60;  /* over the fold roots (position:relative); under nav + menu (100) */
     margin: 0;
-    padding: clamp(10px, 1.6vh, 16px) clamp(16px, 5vw, 28px);
-    background: var(--color-bg); /* page cream #f7f5e7 */
-    border-top: 1px solid var(--color-ink-hairline);
+    padding: clamp(18px, 3vh, 28px) clamp(16px, 5vw, 28px);
+    background: var(--color-bg); /* page cream — content scrolls under, not through */
+    border-bottom: 1px solid transparent; /* hairline fades in when stuck */
     text-align: left;
     line-height: 1.1;
+    transition: top 280ms ease, padding 240ms ease, border-color 240ms ease;
   }
 
-  /* Bar-scale typography — the in-flow heading sizes above are too large for a bar. */
-  .fold-heading .fold-eyebrow {
+  html[data-nav-hidden] .fold .fold-heading { top: 0; }
+
+  /* At-rest typography — full-size, close to the desktop in-flow scale. */
+  .fold .fold-heading .fold-eyebrow {
+    font-size: clamp(0.78rem, 3vw, 0.95rem);
+    margin-bottom: 0.15em;
+    transition: font-size 240ms ease;
+  }
+
+  .fold .fold-heading .fold-title {
+    font-size: clamp(2rem, 8.5vw, 2.6rem);
+    transition: font-size 240ms ease;
+  }
+
+  /* Pinned: condense to bar scale. */
+  .fold .fold-heading.is-stuck {
+    padding: clamp(10px, 1.6vh, 16px) clamp(16px, 5vw, 28px);
+    border-bottom-color: var(--color-ink-hairline);
+  }
+
+  .fold .fold-heading.is-stuck .fold-eyebrow {
     font-size: clamp(0.62rem, 2.4vw, 0.78rem);
     margin-bottom: 0.1em;
   }
 
-  .fold-heading .fold-title {
+  .fold .fold-heading.is-stuck .fold-title {
     font-size: clamp(1.25rem, 5.5vw, 1.7rem);
   }
+}
 
-  /* The footer would slide up underneath the fixed bar and clash with it, so the
-     bar hides as soon as the footer's top edge enters the viewport (mirrored on
-     <html data-footer-visible> by js/folds.js). Same specificity as the reveal
-     rule above — source order makes this win. */
-  html[data-footer-visible] .fold-heading {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  .fold .fold-heading,
+  .fold .fold-heading .fold-eyebrow,
+  .fold .fold-heading .fold-title {
+    transition: none;
   }
 }
