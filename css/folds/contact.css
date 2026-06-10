@@ -121,7 +121,9 @@
   }
 
   .contact__text {
-    padding: calc(var(--header-h) + 4vh) var(--page-gutter) clamp(16px, 3vh, 28px);
+    /* Modest top gap (value picked visually in devtools) — the sticky heading
+       bar above (fold start) already clears the nav, so no --header-h offset. */
+    padding: 35px var(--page-gutter) clamp(16px, 3vh, 28px);
   }
 
   .contact__main {
