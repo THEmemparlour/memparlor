@@ -13,7 +13,8 @@
     "href": "tel:+917405358481"
   },
   "social": [
-    { "label": "Instagram", "href": "https://www.instagram.com/thememoryparlour/" }
+    { "label": "Instagram", "href": "https://www.instagram.com/thememoryparlour/", "icon": "instagram" },
+    { "label": "Email", "href": "mailto:talk@thememoryparlour.com", "icon": "email" }
   ],
   "author": "Riddhi Zaveri",
   "copyright": "© 2024 Memory Parlour. All rights reserved."

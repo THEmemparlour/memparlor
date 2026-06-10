@@ -77,7 +77,7 @@
 
 .site-footer__phone {
   font-family: var(--font-display);
-  font-size: clamp(1.3rem, 2.2vw, 1.9rem);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
   letter-spacing: 0.02em;
   transition: color 180ms ease;
 }
@@ -89,27 +89,31 @@
 .site-footer__social {
   display: flex;
   flex-wrap: wrap;
-  gap: clamp(14px, 1.8vw, 28px);
+  align-items: center;
+  gap: clamp(16px, 1.8vw, 24px);
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+/* Each link is now an icon (Instagram, email) rendered as an inline SVG that
+   inherits the footer color via currentColor. */
 .site-footer__social-link {
-  font-family: var(--font-label);
-  font-weight: 400;
-  font-size: clamp(0.66rem, 0.9vw, 0.78rem);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: rgba(247, 245, 231, 0.78);
-  padding-bottom: 2px;
-  border-bottom: 1px solid transparent;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition: color 180ms ease;
 }
 
 .site-footer__social-link:hover {
   color: var(--color-bg);
-  border-bottom-color: rgba(247, 245, 231, 0.55);
+}
+
+.site-footer__social-link svg {
+  display: block;
+  width: clamp(20px, 2.4vw, 24px);
+  height: clamp(20px, 2.4vw, 24px);
 }
 
 /* --- Bottom bar: copyright + author credit --- */
