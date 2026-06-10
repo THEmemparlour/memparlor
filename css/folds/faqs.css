@@ -151,13 +151,12 @@
 
   .faqs__main {
     /* Centre the Q&A in the lower grid row (undo the desktop flex column / pinned
-       layout). Bottom padding reserves room for the fixed heading bar so the
-       scrolling list doesn't end underneath it. */
+       layout). */
     flex-direction: row;
     align-items: center;
     justify-content: center;
     min-height: 0;
-    padding: clamp(20px, 6vh, 48px) var(--page-gutter) clamp(4.5rem, 13vh, 7rem);
+    padding: clamp(20px, 6vh, 48px) var(--page-gutter);
   }
 
   /* Drop the desktop auto-centring margins; the list flows and is centred by the
@@ -166,5 +165,6 @@
     margin: 0;
   }
 
-  /* Heading is the shared fixed bottom bar on mobile — see css/folds/headings.css. */
+  /* Heading: moved to the fold's start as a sticky top bar on mobile — see
+     css/folds/headings.css + js/headings-mobile.js. */
 }

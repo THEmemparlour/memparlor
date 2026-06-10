@@ -109,22 +109,6 @@
     sections.forEach((el) => observer.observe(el));
   }
 
-  // --- Footer watcher --------------------------------------------------------
-  // The mobile heading bar (css/folds/headings.css) is fixed to the viewport
-  // bottom, so the footer would slide up underneath it and clash. Mirror the
-  // footer's visibility on <html data-footer-visible> so the bar can hide the
-  // moment the footer's top edge enters the viewport — well before it reaches
-  // the spy band. Separate from the scroll-spy on purpose: the footer is not a
-  // fold, so it must never become "active" (no data-fold / URL / nav changes).
-  function observeFooter() {
-    const footer = document.querySelector('site-footer');
-    if (!footer) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      document.documentElement.toggleAttribute('data-footer-visible', entry.isIntersecting);
-    });
-    observer.observe(footer);
-  }
-
   function bindEvents() {
     // Nav / logo click → smooth-scroll to the section (no page reload).
     document.addEventListener('fold:goto', (e) => {
@@ -152,7 +136,6 @@
 
     bindEvents();
     observeSpy();
-    observeFooter();
 
     // Starting fold from the current path (the server serves index.html for any of
     // the six routes; we read location.pathname). Deep-link: jump instantly.

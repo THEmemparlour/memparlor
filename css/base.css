@@ -209,6 +209,13 @@ site-nav button { pointer-events: auto; }
    ========================================================================== */
 
 @media (max-width: 768px) {
+  /* The nav auto-hides on mobile: js/headings-mobile.js mirrors scroll direction
+     on <html data-nav-hidden> — down hides, up reveals, always shown at the very
+     top and while the menu is open. The sticky fold headings
+     (css/folds/headings.css) pin below the bar while it's visible. */
+  site-nav { transition: transform 280ms ease; }
+  html[data-nav-hidden] site-nav { transform: translateY(-100%); }
+
   .site-nav__toggle { display: block; }
 
   .site-nav__list {
@@ -246,5 +253,6 @@ site-nav button { pointer-events: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  site-nav { transition: none; }
   .site-nav__list { transition: none; }
 }

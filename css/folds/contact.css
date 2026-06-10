@@ -133,7 +133,6 @@
     height: 60vh;
   }
 
-  /* Stacked: the heading flows after the lede/body within the left text block
-     (the centring wrapper no longer expands in an auto-height row). Left-aligned
-     from the base rule — no override needed. */
+  /* Heading: moved to the fold's start as a sticky top bar on mobile — see
+     css/folds/headings.css + js/headings-mobile.js. */
 }
