@@ -192,8 +192,15 @@
     video.playsInline = true;
     video.setAttribute('playsinline', '');
     // Must start muted regardless of the final audio decision — browsers block
-    // autoplay for videos with sound.
+    // autoplay for videos with sound. iOS Safari (and some Android WebViews) gate
+    // inline muted autoplay on the `muted` *attribute*, not the JS property, so set
+    // both: without the attribute the programmatic .play() in activate() is rejected
+    // on mobile and the clip never leaves its poster. (We deliberately do NOT set the
+    // `autoplay` attribute — playback is driven per-fold by activate()/deactivate();
+    // the background preload attaches src to every clip, so an autoplay attribute
+    // would start them all off-screen at once.)
     video.muted = true;
+    video.setAttribute('muted', '');
     // Native player chrome (play/pause + the unmute the autoplay-muted clip needs).
     // Supersedes the optional showMuteControl toggle below, which stays opt-in/off.
     video.controls = true;

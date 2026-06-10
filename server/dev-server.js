@@ -8,8 +8,10 @@
 
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { spawn, spawnSync } = require('child_process');
 const r2 = require('./r2'); // hand-rolled SigV4 R2 upload (built-ins only)
 
 // Populate process.env from <root>/.env before anything reads it (e.g. DEV_KEY
@@ -523,6 +525,111 @@ const UPLOAD_TYPES = new Set([
   'video/mp4', 'video/webm',
 ]);
 
+// Uploads with these content-types are re-encoded to web-safe H.264 before they
+// reach R2 (see transcodeToH264). The container type (video/mp4) says nothing
+// about the codec inside — iPhones capture 10-bit HEVC by default, which Chrome
+// can't decode at all and many iPhones render as a black frame over a running
+// timeline — so we normalize every clip rather than trust the type.
+const VIDEO_TYPES = new Set(['video/mp4', 'video/webm']);
+
+// ffmpeg invocation knobs (env-overridable so an author with a non-PATH build or a
+// slower machine can tune them). `veryfast` keeps the upload responsive; crf 20 is
+// visually ~lossless for this kind of source. The timeout caps a runaway encode so
+// a pathological clip can't hold the HTTP request open forever.
+const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
+const FFMPEG_PRESET = process.env.FFMPEG_PRESET || 'veryfast';
+const TRANSCODE_TIMEOUT_MS = (Number(process.env.FFMPEG_TIMEOUT_S) || 180) * 1000;
+
+// True iff an `ffmpeg -version` probe succeeds — checked once at startup so we can
+// warn (like the R2 check) instead of only failing at the first upload.
+function ffmpegAvailable() {
+  try {
+    return spawnSync(FFMPEG, ['-version'], { stdio: 'ignore' }).status === 0;
+  } catch {
+    return false;
+  }
+}
+
+// Re-encode an uploaded clip to web-safe H.264: 8-bit yuv420p, High profile, AAC
+// audio, with the moov atom moved to the front (+faststart) for progressive
+// playback. `+faststart` rewrites the file with a forward seek, so the output must
+// be a real seekable file — we can't stream it through a stdout pipe — hence the
+// temp-file round-trip. Resolves the output bytes; rejects on a non-zero exit,
+// timeout, or a missing ffmpeg binary (ENOENT → actionable message).
+function transcodeToH264(input) {
+  return new Promise((resolve, reject) => {
+    const base = path.join(os.tmpdir(), `mp-upload-${crypto.randomBytes(8).toString('hex')}`);
+    const inPath = `${base}.in`;
+    const outPath = `${base}.mp4`;
+    const cleanup = () => {
+      for (const p of [inPath, outPath]) {
+        try { fs.unlinkSync(p); } catch { /* best-effort */ }
+      }
+    };
+
+    try {
+      fs.writeFileSync(inPath, input);
+    } catch (err) {
+      cleanup();
+      return reject(err);
+    }
+
+    const proc = spawn(FFMPEG, [
+      '-y',
+      '-i', inPath,
+      '-c:v', 'libx264',
+      '-profile:v', 'high',
+      '-pix_fmt', 'yuv420p', // force 8-bit 4:2:0 — the universally decodable baseline
+      '-preset', FFMPEG_PRESET,
+      '-crf', '20',
+      '-movflags', '+faststart',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      outPath,
+    ]);
+
+    // Keep only the tail of stderr — ffmpeg is chatty, but the last lines carry the
+    // actual error when an encode fails.
+    let stderr = '';
+    proc.stderr.on('data', (d) => {
+      stderr = (stderr + d).slice(-8000);
+    });
+
+    const timer = setTimeout(() => {
+      proc.kill('SIGKILL');
+      cleanup();
+      reject(new Error(`ffmpeg timed out after ${TRANSCODE_TIMEOUT_MS / 1000}s`));
+    }, TRANSCODE_TIMEOUT_MS);
+
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      cleanup();
+      reject(
+        err.code === 'ENOENT'
+          ? new Error('ffmpeg not found — install it or set FFMPEG_PATH')
+          : err
+      );
+    });
+
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        cleanup();
+        return reject(new Error(`ffmpeg exited ${code}: ${stderr.slice(-500)}`));
+      }
+      let out;
+      try {
+        out = fs.readFileSync(outPath);
+      } catch (err) {
+        cleanup();
+        return reject(err);
+      }
+      cleanup();
+      resolve(out);
+    });
+  });
+}
+
 function handleUpload(req, res) {
   const contentType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
   if (!UPLOAD_TYPES.has(contentType)) return send(res, 400, 'unsupported content-type');
@@ -539,9 +646,26 @@ function handleUpload(req, res) {
   }
   readRawBody(req, res, async (body) => {
     if (!body.length) return send(res, 400, 'empty body');
-    const key = `media/${fold}/${Date.now()}-${name}`;
+
+    // Video uploads are normalized to H.264 .mp4 on the way through; images are
+    // stored verbatim. The transcode rewrites both the bytes and the stored type +
+    // extension (a .mov/.webm input lands as .mp4).
+    let outBody = body;
+    let outType = contentType;
+    let outName = name;
+    if (VIDEO_TYPES.has(contentType)) {
+      try {
+        outBody = await transcodeToH264(body);
+      } catch (err) {
+        return send(res, 502, JSON.stringify({ error: `transcode failed: ${String(err.message || err)}` }), 'application/json; charset=utf-8');
+      }
+      outType = 'video/mp4';
+      outName = `${name.replace(/\.[a-z0-9]+$/i, '')}.mp4`;
+    }
+
+    const key = `media/${fold}/${Date.now()}-${outName}`;
     try {
-      const { url } = await r2.putObject({ key, body, contentType });
+      const { url } = await r2.putObject({ key, body: outBody, contentType: outType });
       send(res, 200, JSON.stringify({ url }), 'application/json; charset=utf-8');
     } catch (err) {
       send(res, 502, JSON.stringify({ error: String(err.message || err) }), 'application/json; charset=utf-8');
@@ -646,6 +770,8 @@ server.on('listening', () => {
   }
   if (!r2.r2Configured()) {
     console.warn('[dev] R2_* env not fully set — media upload (POST /__dev/upload) is DISABLED. Set R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET / R2_PUBLIC_BASE_URL to enable it.');
+  } else if (!ffmpegAvailable()) {
+    console.warn(`[dev] ffmpeg not found (tried "${FFMPEG}") — VIDEO uploads will fail until it's installed (brew install ffmpeg) or FFMPEG_PATH is set. Image uploads are unaffected.`);
   }
 });
 
@@ -668,4 +794,4 @@ if (require.main === module) {
   listen(Number(PORT), MAX_PORT_TRIES);
 }
 
-module.exports = { validateOverrides, serializeOverrides, validateLayout, serializeLayout };
+module.exports = { validateOverrides, serializeOverrides, validateLayout, serializeLayout, transcodeToH264, ffmpegAvailable };

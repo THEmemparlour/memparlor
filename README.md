@@ -36,7 +36,10 @@ final media assets).
 
 ## Quick start
 
-Requires Node (uses only built-ins — no `npm install` needed).
+Requires Node (uses only built-ins — no `npm install` needed). One optional
+extra: **video** uploads via the `?dev` media panel shell out to `ffmpeg` to
+re-encode clips to a web-safe format (`brew install ffmpeg`); everything else,
+including image uploads, needs nothing beyond Node.
 
 ```bash
 npm run dev                          # serves at http://localhost:8080
@@ -82,6 +85,17 @@ R2_BUCKET=… R2_PUBLIC_BASE_URL=https://media.example.com \
 npm run dev
 # R2_MAX_UPLOAD_MB (default 50) caps the upload size.
 ```
+
+**Video re-encoding on upload.** A `video/mp4` (or `.webm`) container says nothing
+about the codec *inside* it — iPhones, for instance, capture **10-bit HEVC**, which
+Chrome can't decode at all and many iPhones render as a black frame over a running
+timeline. So every video upload is normalized on the way to R2: the server pipes it
+through `ffmpeg` to **8-bit H.264 (`yuv420p`, High profile) + AAC, `+faststart`** —
+the format every browser/phone renders — and stores the result as `.mp4` (a `.mov`/
+`.webm` input lands as `.mp4`). Images are stored verbatim. This needs `ffmpeg` on
+`PATH` (the server warns at startup and the video upload 502s with an actionable
+message if it's missing). Tunable via env: `FFMPEG_PATH` (default `ffmpeg`),
+`FFMPEG_PRESET` (default `veryfast`), `FFMPEG_TIMEOUT_S` (default 180).
 
 `npm run test:r2` checks the SigV4 signing math against AWS's published test
 vector (offline, no creds); with the `R2_*` vars set it also runs a live PUT +
