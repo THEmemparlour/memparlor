@@ -67,12 +67,20 @@
 
 /* Narrow widths — tighten the headline and show the whole hero at full width. */
 @media (max-width: 768px) {
+  /* Big enough that the headline block fills roughly the top half of the
+     screen (it may overlap the hero band below — intended). */
   .home__headline {
     top: calc(var(--header-h) + clamp(16px, 4vh, 40px));
     width: 100%;
     padding: 0 18px;
-    font-size: clamp(1rem, 4.7vw, 2rem);
+    font-size: clamp(1.6rem, 11vw, 3.4rem);
     letter-spacing: 0.02em;
+  }
+
+  /* At this size single segments ("ONE MEMORY AT A TIME.") are wider than the
+     viewport; allow wrapping inside segments so nothing forces side-scroll. */
+  .home__seg {
+    white-space: normal;
   }
 
   /* Mobile hero: a full-width band pinned to the bottom edge, covering the
