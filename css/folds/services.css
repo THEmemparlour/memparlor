@@ -13,11 +13,13 @@
   display: grid;
   grid-template-columns: 1fr clamp(280px, 36%, 460px);
   gap: clamp(24px, 5vw, 80px);
-  /* Top: just breathing room — html's scroll-padding-top (= --header-h) already
-     rests this fold below the fixed header on nav clicks. Cream gutters L/R. */
-  padding: clamp(14px, 3vh, 30px)
+  /* A comfortable gap below the fixed header so the left list isn't jammed
+     against it (html's scroll-padding-top = --header-h already rests the fold
+     below the header on nav clicks). No bottom padding — the media bleeds to
+     the bottom edge of the viewport (see .services__col). Cream gutters L/R. */
+  padding: clamp(24px, 5vh, 52px)
            var(--page-gutter)
-           clamp(22px, 4.5vh, 48px);
+           0;
   background: var(--color-bg);
 }
 
@@ -56,21 +58,21 @@
 }
 
 /* --- Right column: heading (top) + media (below) --------------------------
-   Sticky: when a long services list grows the fold past one viewport, this
-   column (heading + image) stays pinned in view while the list scrolls past on
-   the left, then releases and scrolls away once the fold's bottom reaches the
-   viewport. Sized to span from below the header down to the bottom gutter so the
-   image (flex:1 below) fills to the bottom of the viewport. */
+   Flows with the page (no sticky pin): the column scrolls away with the fold as
+   soon as its content clears the bottom edge, rather than staying glued while
+   the left list scrolls. At the fold's rest position it's sized to span from
+   below the header down to the viewport's bottom edge, so the image (flex:1
+   below) fills to the bottom of the screen. */
 .services__col {
   /* Pin to the second grid track so it can't auto-place into column 1 when the
      left list is taken out of grid flow (e.g. the ?dev layout tool sets the list
      to position:absolute). No-op in the normal layout. */
   grid-column: 2;
   align-self: start;
-  position: sticky;
-  top: calc(var(--header-h) + clamp(14px, 3vh, 30px));
-  height: calc(100vh - var(--header-h) - clamp(14px, 3vh, 30px) - clamp(22px, 4.5vh, 48px));
-  height: calc(100dvh - var(--header-h) - clamp(14px, 3vh, 30px) - clamp(22px, 4.5vh, 48px));
+  /* Span from below the top padding down to the viewport's bottom edge so the
+     media (flex:1 below) extends down to touch the bottom of the screen. */
+  height: calc(100vh - var(--header-h) - clamp(24px, 5vh, 52px));
+  height: calc(100dvh - var(--header-h) - clamp(24px, 5vh, 52px));
   display: flex;
   flex-direction: column;
 }
