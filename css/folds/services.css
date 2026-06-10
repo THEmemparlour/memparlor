@@ -13,8 +13,9 @@
   display: grid;
   grid-template-columns: 1fr clamp(280px, 36%, 460px);
   gap: clamp(24px, 5vw, 80px);
-  /* Clear the fixed header; cream gutters L/R match the rest of the site. */
-  padding: calc(var(--header-h) + clamp(14px, 3vh, 30px))
+  /* Top: just breathing room — html's scroll-padding-top (= --header-h) already
+     rests this fold below the fixed header on nav clicks. Cream gutters L/R. */
+  padding: clamp(14px, 3vh, 30px)
            var(--page-gutter)
            clamp(22px, 4.5vh, 48px);
   background: var(--color-bg);
