@@ -7,7 +7,9 @@
     "autoplay": true,
     "loop": true,
     "muted": true,
-    "showMuteControl": false
+    "showMuteControl": false,
+    "position": "50% 54%",
+    "zoom": 1
   },
   "poem": [
     "We are the keepers of dinner-table folklore.",
@@ -16,21 +18,12 @@
     "no one can read anymore.",
     "We do not collect the past.",
     "We tend to it, slowly, save it to be savoured for years.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line.",
-    "New line."
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
   ],
   "heading": {
     "eyebrow": "Knowing",

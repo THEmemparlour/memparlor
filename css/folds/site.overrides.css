@@ -2,5 +2,6 @@
    Loaded after the fold stylesheet on the live site; hand edits will be lost. */
 
 .site-nav__link.is-active {
-  color: red;
+  font-style: italic;
+  color: black;
 }

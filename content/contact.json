@@ -1,6 +1,6 @@
 {
   "fold": "contact",
-  "lede": "Begin Preserving Your Legacy.",
+  "lede": "Let Us Begin Preserving Your Legacy.",
   "body": [
     "Book a call with us where we will discuss the possibilities and the ways to preserve your history for generations to come."
   ],
@@ -8,5 +8,8 @@
     "type": "calendly",
     "url": "https://calendly.com/archivesafterlight/30min?background_color=f7f5e7&text_color=1c1b16&primary_color=1a1a1a"
   },
-  "heading": { "eyebrow": "Tell us your", "title": "Story" }
+  "heading": {
+    "eyebrow": "Tell us your",
+    "title": "Story"
+  }
 }
