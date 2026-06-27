@@ -2,6 +2,5 @@
    Loaded after the fold stylesheet on the live site; hand edits will be lost. */
 
 .home__seg--italic {
-  font-weight: 400;
-  font-style: italic;
+  color: green;
 }
